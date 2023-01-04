@@ -2,6 +2,7 @@ import serial
 import time
 import json
 import schedule
+import os
 
 from BaseMQTTPubSub import BaseMQTTPubSub
 class aisDataSender(BaseMQTTPubSub):
@@ -49,5 +50,5 @@ class aisDataSender(BaseMQTTPubSub):
                 print('Unknown problem')
 
 
-sender = aisDataSender()
+sender = aisDataSender(mqttIP=os.environ.get('mqttbus'))
 sender.main()
