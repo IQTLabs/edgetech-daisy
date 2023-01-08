@@ -8,10 +8,11 @@ services:
     restart: unless-stopped
   daisy:
     image: iqtlabs/edgetech-daisy:latest
+    network_mode: "host"
     devices:
       - "/dev/ttyACM0:/dev/serial0"
     environment:
-      - mqttbus=mqtt
+      - MQTT_IP=127.0.0.1
     build:
       context: ./daisy
       dockerfile: ./Dockerfile
