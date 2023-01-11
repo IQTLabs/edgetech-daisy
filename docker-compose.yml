@@ -11,7 +11,9 @@ services:
     devices:
       - "/dev/ttyACM0:/dev/serial0"
     environment:
-      - mqttbus=mqtt
+      - SEND_DATA_TOPIC=/AISonobuoy/<HOSTNAME>/AIS/edgetech-daisy/bytestring
+      - SERIAL_PORT=/dev/serial0
+      - MQTT_IP=mqtt
     build:
       context: ./daisy
       dockerfile: ./Dockerfile
