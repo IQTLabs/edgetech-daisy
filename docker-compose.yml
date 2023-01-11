@@ -6,6 +6,11 @@ services:
       - "1883:1883"
       - "9001:9001"
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1M"
+        max-file: "10"
   daisy:
     image: iqtlabs/edgetech-daisy:latest
     devices:
@@ -18,5 +23,10 @@ services:
       context: ./daisy
       dockerfile: ./Dockerfile
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10M"
+        max-file: "10"
     depends_on: 
       - mqtt
