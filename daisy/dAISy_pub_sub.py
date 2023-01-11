@@ -1,7 +1,7 @@
 """_summary_   
 """
 import os
-import time
+from time import sleep, time
 import json
 from typing import Any, Dict
 import serial
@@ -11,70 +11,71 @@ from base_mqtt_pub_sub import BaseMQTTPubSub
 
 
 class DAISyPubSub(BaseMQTTPubSub):
-    """_summary_
+    """This class creates a connection to the MQTT broker and to the dAISy serial port
+    to publish AIS bytestrings to an MQTT topic
 
     Args:
         BaseMQTTPubSub (BaseMQTTPubSub): parent class written in the EdgeTech Core module
-
-    Returns:
-        _type_: _description_
-    """    
-    SERIAL_PORT = "/dev/serial0"
-    SEND_DATA_TOPIC = "/aisonobuoy/dAISy"
+    """
 
     def __init__(
         self: Any,
-        serial_port: str = SERIAL_PORT,
-        send_data_topic: str = SEND_DATA_TOPIC,
+        serial_port: str,
+        send_data_topic: str,
         debug: bool = False,
         **kwargs: Any,
     ):
-        """_summary_
+        """The DAISyPubSub constructor takes a serial port address and after
+        instantiating a connection to the MQTT broker also connects to the serial
+        port specified.
 
         Args:
-            serial_port (str, optional): _description_. Defaults to SERIAL_PORT.
-            send_data_topic (str, optional): _description_. Defaults to SEND_DATA_TOPIC.
-            debug (bool, optional): _description_. Defaults to False.
+            serial_port (str): a serial port to subscribe to. Specified via docker-compose.
+            send_data_topic (str): MQTT topic to publish the data from the port to.
+            Specified via docker-compose.
+            debug (bool, optional): If the debug mode is turned on, log statements print to stdout.
+            Defaults to False.
         """
         super().__init__(**kwargs)
+        # convert contructor parameters to class variables
         self.serial_port = serial_port
         self.send_data_topic = send_data_topic
         self.debug = debug
 
+        # connect to the MQTT client
         self.connect_client()
+        sleep(1)
+        # publish a message after successful connection to the MQTT broker
         self.publish_registration("dAISy Sender Registration")
 
-        self.connect_serial()
+        # setup the serial connection
+        self._connect_serial()
 
-    def connect_serial(self: Any) -> None:
-        """_summary_
-
-        Args:
-            self (Any): _description_
-        """        
+    def _connect_serial(self: Any) -> None:
+        """Sets up a serial connection using python's serial package to the port specified
+        in the constructor.
+        """
+        # setup serial connection
         self.serial = serial.Serial(self.serial_port)
 
         if self.debug:
             print(f"Connected to Serial Bus on {self.serial_port}")
 
-    def disconnect_serial(self: Any) -> None:
-        """_summary_
-
-        Args:
-            self (Any): _description_
-        """
+    def _disconnect_serial(self: Any) -> None:
+        """Disconnects the serial connection using python's serial package."""
         self.serial.close()
 
-    def send_data(self: Any, data: Dict[str, str]) -> bool:
-        """_summary_
+    def _send_data(self: Any, data: Dict[str, str]) -> bool:
+        """Leverages edgetech-core functionality to publish a JSON payload to the MQTT
+        broker on the topic specified in the class constructor.
 
         Args:
-            self (Any): _description_
-            data (Dict[str, str]): _description_
+            data (Dict[str, str]): Dictionary payload that maps keys to payload.
 
         Returns:
-            bool: _description_
-        """        
+            bool: Returns True if successful publish else False.
+        """
+        # publish the data as a JSON to the topic
         success = self.publish_to_topic(self.send_data_topic, json.dumps(data))
 
         if self.debug:
@@ -86,36 +87,37 @@ class DAISyPubSub(BaseMQTTPubSub):
                 print(
                     f"Failed to send data on channel {self.send_data_topic}: {json.dumps(data)}"
                 )
+        # return True if successful else False
         return success
 
     def main(self: Any) -> None:
-        """_summary_
-
-        Args:
-            self (Any): _description_
-        """        
-        running = True
+        """Main loop and function that setup the heartbeat to keep the TCP/IP
+        connection alive and publishes the data to the MQTT broker and keep the
+        main thread alive.
+        """
         schedule.every(10).seconds.do(
             self.publish_heartbeat, payload="dAISy Sender Heartbeat"
         )
 
-        while running:
+        while True:
             try:
                 if self.serial.in_waiting:
-
-                    self.send_data(
+                    # send the payload to MQTT
+                    self._send_data(
                         {
-                            "timereceived": str(time.time()),
+                            "timestamp": str(time()),
                             "data": self.serial.readline().decode(),
                         }
                     )
 
+                # flush any scheduled processes that are waiting
                 schedule.run_pending()
-                time.sleep(0.001)
+                # prevent the loop from running at CPU time
+                sleep(0.001)
 
             except KeyboardInterrupt:
-                running = False
-                self.disconnect_serial()
+                # if keyboard interrupt, fail gracefully
+                self._disconnect_serial()
                 if self.debug:
                     print("AIS application stopped!")
 
@@ -124,5 +126,9 @@ class DAISyPubSub(BaseMQTTPubSub):
 
 
 if __name__ == "__main__":
-    sender = DAISyPubSub(mqtt_ip=os.environ.get("MQTT_IP"))
+    sender = DAISyPubSub(
+        serial_port=os.environ.get("SERIAL_PORT"),
+        send_data_topic=os.environ.get("SEND_DATA_TOPIC"),
+        mqtt_ip=os.environ.get("MQTT_IP"),
+    )
     sender.main()
