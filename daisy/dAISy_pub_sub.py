@@ -1,8 +1,10 @@
-"""_summary_   
+"""This file contains the DAISyPubSub class which is a child class of BaseMQTTPubSub. 
+The DAISyPubSub reads data from a specified socket and publishes it to the MQTT broker.
 """
 import os
 from time import sleep, time
 import json
+from datetime import datetime
 from typing import Any, Dict
 import serial
 import schedule
@@ -92,7 +94,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
     def main(self: Any) -> None:
         """Main loop and function that setup the heartbeat to keep the TCP/IP
-        connection alive and publishes the data to the MQTT broker and keep the
+        connection alive and publishes the data to the MQTT broker and keeps the
         main thread alive.
         """
         schedule.every(10).seconds.do(
@@ -105,7 +107,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                     # send the payload to MQTT
                     self._send_data(
                         {
-                            "timestamp": str(time()),
+                            "timestamp": str(int(datetime.utcnow().timestamp())),
                             "data": self.serial.readline().decode(),
                         }
                     )
