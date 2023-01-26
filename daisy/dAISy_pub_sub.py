@@ -77,8 +77,22 @@ class DAISyPubSub(BaseMQTTPubSub):
         Returns:
             bool: Returns True if successful publish else False.
         """
+        out_json = self.generate_payload_json(
+            push_timestamp=int(datetime.utcnow().timestamp()),
+            device_type="Collector",
+            id_="TEST",
+            deployment_id=f"AISonobuoy-Arlington-{'TEST'}",
+            current_location="-90, -180",
+            status="Debug",
+            message_type="Event",
+            model_version="null",
+            firmware_version="v0.0.0",
+            data_payload_type="AIS",
+            data_payload=json.dumps(data),
+        )
+
         # publish the data as a JSON to the topic
-        success = self.publish_to_topic(self.send_data_topic, json.dumps(data))
+        success = self.publish_to_topic(self.send_data_topic, out_json)
 
         if self.debug:
             if success:
