@@ -78,7 +78,7 @@ class DAISyPubSub(BaseMQTTPubSub):
             bool: Returns True if successful publish else False.
         """
         out_json = self.generate_payload_json(
-            push_timestamp=int(datetime.utcnow().timestamp()),
+            push_timestamp=str(int(datetime.utcnow().timestamp())),
             device_type="Collector",
             id_="TEST",
             deployment_id=f"AISonobuoy-Arlington-{'TEST'}",
