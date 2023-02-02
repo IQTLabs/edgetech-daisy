@@ -121,9 +121,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                 if self.serial.in_waiting:
                     # send the payload to MQTT
                     serial_payload = self.serial.read(10).decode()
-                    if '\n' not in serial_payload:
+                    if "\n" not in serial_payload:
                         queue.append(serial_payload)
                     else:
+                        split_payload = serial_payload.split("\n")
+                        queue.append(split_payload[0])
                         self._send_data(
                             {
                                 "timestamp": str(datetime.utcnow().timestamp()),
@@ -131,6 +133,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                             }
                         )
                         queue = []
+                        if len(split_payload) > 1:
+                            queue.append(split_payload[-1])
 
                 # flush any scheduled processes that are waiting
                 schedule.run_pending()
