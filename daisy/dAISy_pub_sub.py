@@ -58,7 +58,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         in the constructor.
         """
         # setup serial connection
-        self.serial = serial.Serial(self.serial_port)
+        self.serial = serial.Serial(self.serial_port, timeout=0.001)
 
         if self.debug:
             print(f"Connected to Serial Bus on {self.serial_port}")
@@ -114,17 +114,27 @@ class DAISyPubSub(BaseMQTTPubSub):
         schedule.every(10).seconds.do(
             self.publish_heartbeat, payload="dAISy Sender Heartbeat"
         )
+        queue = []
 
         while True:
             try:
                 if self.serial.in_waiting:
                     # send the payload to MQTT
-                    self._send_data(
-                        {
-                            "timestamp": str(int(datetime.utcnow().timestamp())),
-                            "data": self.serial.readline().decode(),
-                        }
-                    )
+                    serial_payload = self.serial.read(10).decode()
+                    if "\n" not in serial_payload:
+                        queue.append(serial_payload)
+                    else:
+                        split_payload = serial_payload.split("\n")
+                        queue.append(split_payload[0])
+                        self._send_data(
+                            {
+                                "timestamp": str(datetime.utcnow().timestamp()),
+                                "data": "".join(queue),
+                            }
+                        )
+                        queue = []
+                        if len(split_payload) > 1:
+                            queue.append(split_payload[-1])
 
                 # flush any scheduled processes that are waiting
                 schedule.run_pending()
