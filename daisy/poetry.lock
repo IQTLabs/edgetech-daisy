@@ -1,0 +1,27 @@
+[[package]]
+name = "pyserial"
+version = "3.5"
+description = "Python Serial Port Extension"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.extras]
+cp2110 = ["hidapi"]
+
+[[package]]
+name = "schedule"
+version = "1.1.0"
+description = "Job scheduling for humans."
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.11"
+content-hash = "f559bd6847c2bccf52fe68d01343fcbcbe406f98e3844f50c473265fa66e9ee7"
+
+[metadata.files]
+pyserial = []
+schedule = []

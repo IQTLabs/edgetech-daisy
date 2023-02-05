@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "daisy"
+version = "0.1.0"
+description = "MQTT client to take read serial messages from aliased port and publish them to an MQTT topic"
+authors = ["Ari <ari.chadda@gmail.com>"]
+license = "Apache 2.0"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.dev-dependencies]
+pyserial = "^3.5"
+schedule = "^1.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
