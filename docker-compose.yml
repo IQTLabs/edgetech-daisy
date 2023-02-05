@@ -15,10 +15,6 @@ services:
     image: iqtlabs/edgetech-daisy:latest
     devices:
       - "/dev/ttyACM0:/dev/serial0"
-    environment:
-      - SEND_DATA_TOPIC=/AISonobuoy/<HOSTNAME>/AIS/edgetech-daisy/bytestring
-      - SERIAL_PORT=/dev/serial0
-      - MQTT_IP=mqtt
     build:
       context: ./daisy
       dockerfile: ./Dockerfile
@@ -30,3 +26,5 @@ services:
         max-file: "10"
     depends_on: 
       - mqtt
+    env_file:
+      - .env

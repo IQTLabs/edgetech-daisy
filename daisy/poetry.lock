@@ -2,7 +2,7 @@
 name = "pyserial"
 version = "3.5"
 description = "Python Serial Port Extension"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -13,14 +13,14 @@ cp2110 = ["hidapi"]
 name = "schedule"
 version = "1.1.0"
 description = "Job scheduling for humans."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "f559bd6847c2bccf52fe68d01343fcbcbe406f98e3844f50c473265fa66e9ee7"
+content-hash = "cbd3488254d0d1664058d2746e0701e935c524c6adc08fce3102e1a45781d13c"
 
 [metadata.files]
 pyserial = []
