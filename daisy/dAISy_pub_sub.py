@@ -2,7 +2,7 @@
 The DAISyPubSub reads data from a specified socket and publishes it to the MQTT broker.
 """
 import os
-from time import sleep, time
+from time import sleep
 import json
 from datetime import datetime
 from typing import Any, Dict
@@ -141,20 +141,17 @@ class DAISyPubSub(BaseMQTTPubSub):
                 # prevent the loop from running at CPU time
                 sleep(0.001)
 
-            except KeyboardInterrupt:
+            except KeyboardInterrupt as exception:
                 # if keyboard interrupt, fail gracefully
                 self._disconnect_serial()
                 if self.debug:
-                    print("AIS application stopped!")
-
-            except Exception as e:
-                print(e)
+                    print(exception)
 
 
 if __name__ == "__main__":
     sender = DAISyPubSub(
-        serial_port=os.environ.get("SERIAL_PORT"),
-        send_data_topic=os.environ.get("SEND_DATA_TOPIC"),
-        mqtt_ip=os.environ.get("MQTT_IP"),
+        serial_port=str(os.environ.get("SERIAL_PORT")),
+        send_data_topic=str(os.environ.get("SEND_DATA_TOPIC")),
+        mqtt_ip=str(os.environ.get("MQTT_IP")),
     )
     sender.main()
