@@ -1,5 +1,3 @@
-
-
 <a name="readme-top"></a>
 
 [contributors-shield]: https://img.shields.io/github/contributors/IQTLabs/edgetech-daisy.svg?style=for-the-badge
@@ -79,6 +77,11 @@ flowchart TD
     daisy(dAISy) -- dAISy Topic --> mqtt{MQTT}
     mqtt{MQTT} -- Subscribed to dAISy Topic --> filesaver(Filesaver)
     mqtt{MQTT} -- Subscribed to dAISy Topic -->  couchdbsaver(CouchDB Saver)
+
+style mqtt fill:#0072bc,color:#ffffff
+style daisy fill:#80c342,color:#ffffff
+style couchdbsaver fill:#F9D308,color:#ffffff
+style filesaver fill:#F9D308,color:#ffffff
 
 ```
 
