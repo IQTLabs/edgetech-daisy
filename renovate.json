@@ -1,6 +1,10 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "constraints": {
+    "poetry": "==1.1.5"
+  },
   "extends": [
-    "config:base"
-  ]
+    "config:base",
+    "docker:enableMajor"
+  ],
+  "ignorePaths": []
 }
