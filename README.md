@@ -34,7 +34,7 @@
 <h1 align="center">EdgeTech-dAISy</h1>
 
   <p align="center">
-    This repo builds upon the <a href="https://github.com/IQTLabs/edgetech-core">IQT Labs Edgetech-Core</a> functionality to instantiate an <a href="https://projects.eclipse.org/projects/iot.mosquitto">MQTT</a> client that reads from an aliased serial port and publishes a bytestring delimited by newlines to an MQTT topic. All of this functionality is wrapped in a Docker container for cross-platform compatability. 
+    This repo builds upon the <a href="https://github.com/IQTLabs/edgetech-core">IQT Labs EdgeTech-Core</a> functionality to instantiate an <a href="https://projects.eclipse.org/projects/iot.mosquitto">MQTT</a> client that reads from an aliased serial port and publishes a bytestring delimited by newlines to an MQTT topic. All of this functionality is wrapped in a Docker container for cross-platform compatibility.
     <br/>
     <br/>
     <a href="https://github.com/IQTLabs/edgetech-daisy/pulls">Make Contribution</a>
@@ -67,7 +67,7 @@ Running this repo requires that you have [Docker](https://www.docker.com) instal
 
 ## Usage
 
-Spinning up this system requires an MQTT server and this container to be included in your `docker-compose.yml`. You can find an example of this workflow in this repository's `docker-compose.yml`. Additionally, some editing of relevant enviornment variables will be required based upon your system's configuration of topics to subscribe to and MQTT configuration. Examples of these enviornment variables can be found in this repository's `.env` file. 
+Spinning up this system requires an MQTT server and this container to be included in your `docker-compose.yml`. You can find an example of this workflow in this repository's `docker-compose.yml`. Additionally, some editing of relevant environment variables will be required based upon your system's configuration of topics to subscribe to and MQTT configuration. Examples of these environment variables can be found in this repository's `.env` file. 
 
 As this system is meant to be spun up with MQTT topics you would like to write to files, copying the daisy `docker-compose` statements into a master `docker-compose.yml` and  `.env` files with your entire system of containers is the preferred workflow. Find an application architecture diagram example of how the usage of this module was envisioned below.
 
@@ -117,13 +117,9 @@ Distributed under the [Apache 2.0](https://github.com/IQTLabs/edgetech-daisy/blo
 
 ## Contact IQTLabs
 
-  - Twtiter: [@iqtlabs](https://twitter.com/iqtlabs)
+  - Twitter: [@iqtlabs](https://twitter.com/iqtlabs)
   - Email: info@iqtlabs.org
 
 See our other projects: [https://github.com/IQTLabs/](https://github.com/IQTLabs/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-
