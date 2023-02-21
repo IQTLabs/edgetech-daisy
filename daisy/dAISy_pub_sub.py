@@ -150,8 +150,8 @@ class DAISyPubSub(BaseMQTTPubSub):
 
 if __name__ == "__main__":
     sender = DAISyPubSub(
-        serial_port=str(os.environ.get("SERIAL_PORT")),
-        send_data_topic=str(os.environ.get("SEND_DATA_TOPIC")),
+        serial_port=str(os.environ.get("AIS_SERIAL_PORT")),
+        send_data_topic=str(os.environ.get("AIS_SEND_DATA_TOPIC")),
         mqtt_ip=str(os.environ.get("MQTT_IP")),
     )
     sender.main()
