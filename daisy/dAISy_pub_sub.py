@@ -24,6 +24,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self: Any,
         serial_port: str,
         send_data_topic: str,
+        hostname: str,
         debug: bool = False,
         **kwargs: Any,
     ):
@@ -42,6 +43,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         # convert contructor parameters to class variables
         self.serial_port = serial_port
         self.send_data_topic = send_data_topic
+        self.hostname = hostname
         self.debug = debug
 
         # connect to the MQTT client
@@ -80,8 +82,8 @@ class DAISyPubSub(BaseMQTTPubSub):
         out_json = self.generate_payload_json(
             push_timestamp=str(int(datetime.utcnow().timestamp())),
             device_type="Collector",
-            id_="TEST",
-            deployment_id=f"AISonobuoy-Arlington-{'TEST'}",
+            id_=self.hostname,
+            deployment_id=f"AISonobuoy-Arlington-{self.hostname}",
             current_location="-90, -180",
             status="Debug",
             message_type="Event",
@@ -152,6 +154,7 @@ if __name__ == "__main__":
     sender = DAISyPubSub(
         serial_port=str(os.environ.get("AIS_SERIAL_PORT")),
         send_data_topic=str(os.environ.get("AIS_SEND_DATA_TOPIC")),
+        hostname=str(os.environ.get("HOSTNAME")),
         mqtt_ip=str(os.environ.get("MQTT_IP")),
     )
     sender.main()
