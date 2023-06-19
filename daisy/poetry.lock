@@ -11,11 +11,11 @@ cp2110 = ["hidapi"]
 
 [[package]]
 name = "schedule"
-version = "1.1.0"
+version = "1.2.0"
 description = "Job scheduling for humans."
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [metadata]
 lock-version = "1.1"
