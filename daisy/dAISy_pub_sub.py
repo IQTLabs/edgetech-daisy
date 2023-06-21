@@ -4,7 +4,6 @@ port and publishes binary and decoded payloads to the MQTT broker.
 """
 import coloredlogs
 from datetime import datetime
-import json
 import logging
 import os
 import sys
@@ -143,7 +142,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Return True if successful else False
         return success
 
-    def process_serial_payload(self, binary_payload):
+    def process_serial_payload(self, binary_payload: str) -> None:
         """Publish the binary payload to MQTT, then attempt to decode
         the binary payload and, if successful, publish the decoded
         payload to MQTT.
