@@ -7,10 +7,16 @@ license = "Apache 2.0"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+coloredlogs = "^15.0.1"
+paho-mqtt = "^1.5.0"
+pyais = "^2.5.4"
 pyserial = "^3.5"
-schedule = "^1.1.0"
+schedule = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
+flake8 = "^6.0.0"
+pylint = "^2.17.4"
+pkgconfig = "^1.5.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
