@@ -131,3 +131,6 @@ dmypy.json
 # Local
 .bashrc
 base_mqtt_pub_sub.py
+*#
+*~
+
