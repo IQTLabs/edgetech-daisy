@@ -4,6 +4,7 @@ port and publishes binary and decoded payloads to the MQTT broker.
 """
 import coloredlogs
 from datetime import datetime
+import json
 import logging
 import os
 import sys
@@ -12,6 +13,13 @@ from typing import Any, Dict
 
 from pyais import decode
 from pyais.exceptions import UnknownMessageException
+from pyais.messages import (
+    MessageType1,
+    MessageType2,
+    MessageType3,
+    MessageType4,
+    MessageType18,
+)
 import serial
 import schedule
 
@@ -163,11 +171,91 @@ class DAISyPubSub(BaseMQTTPubSub):
         try:
             decoded_payload = decode(binary_payload)
 
-            # Send the decoded payload to MQTT
+            # Process the decoded payload
+            processed_payload = {}
+            message_type = type(decoded_payload)
+            if message_type in [MessageType1, MessageType2, MessageType3]:
+                # Class A AIS Position Report (Messages 1, 2, and 3)
+                # See:
+                #     https://www.navcen.uscg.gov/ais-class-a-reports
+                #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
+                processed_payload["mmsi"] = decoded_payload.mmsi
+                processed_payload["latitude"] = (
+                    decoded_payload.lat * 10000 / 60
+                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["longitude"] = (
+                    decoded_payload.lon * 10000 / 60
+                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["altitude"] = 0.0
+                processed_payload["horizontal_speed"] = (
+                    decoded_payload.speed * 1852 / 3600
+                )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
+                processed_payload["course"] = decoded_payload.course  # [deg]
+                processed_payload["vertical_speed"] = 0.0
+                # Optional values
+                processed_payload["second"] = decoded_payload.second  # of UTC
+                processed_payload["status"] = decoded_payload.status
+                processed_payload["turn"] = decoded_payload.turn
+                processed_payload["accuracy"] = decoded_payload.accuracy
+                processed_payload["heading"] = decoded_payload.heading
+                processed_payload["maneuver"] = decoded_payload.maneuver
+
+            elif message_type == MessageType4:
+                # AIS Base Station Report (Message 4) and Coordinated Universal Time and Date Response (Message 11)
+                # See:
+                #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
+                #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
+                processed_payload["mmsi"] = decoded_payload.mmsi
+                processed_payload[
+                    "latitude"
+                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "longitude"
+                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["altitude"] = 0.0
+                processed_payload["horizontal_speed"] = 0.0
+                processed_payload["course"] = 0.0
+                processed_payload["vertical_speed"] = 0.0
+                # Optional values
+                processed_payload["year"] = decoded_payload.year  # of UTC
+                processed_payload["month"] = decoded_payload.month  # of UTC
+                processed_payload["day"] = decoded_payload.day  # of UTC
+                processed_payload["hour"] = decoded_payload.hour  # of UTC
+                processed_payload["minute"] = decoded_payload.minute  # of UTC
+                processed_payload["second"] = decoded_payload.second  # of UTC
+                processed_payload["accuracy"] = decoded_payload.accuracy
+
+            elif message_type == MessageType18:
+                # AIS Standard Class B Equipment Position Report (Message 18)
+                # See:
+                #     https://www.navcen.uscg.gov/ais-class-b-reports
+                #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
+                processed_payload["mmsi"] = decoded_payload.mmsi
+                processed_payload["latitude"] = (
+                    decoded_payload.lat * 10000 / 60
+                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["longitude"] = (
+                    decoded_payload.lon * 10000 / 60
+                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["altitude"] = 0.0
+                processed_payload["horizontal_speed"] = (
+                    decoded_payload.speed * 1852 / 3600
+                )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
+                processed_payload["course"] = decoded_payload.course
+                processed_payload["vertical_speed"] = 0.0
+                # Optional values
+                processed_payload["second"] = decoded_payload.second  # of UTC
+                processed_payload["accuracy"] = decoded_payload.accuracy
+                processed_payload["heading"] = decoded_payload.heading
+
+            else:
+                logging.info(f"Skipping message type: {message_type}")
+
+            # Send the processed payload to MQTT
             self._send_data(
                 {
                     "type": "Decoded AIS",
-                    "payload": str(decoded_payload),
+                    "payload": json.dumps(processed_payload),
                 }
             )
 
