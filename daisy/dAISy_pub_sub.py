@@ -58,10 +58,10 @@ class DAISyPubSub(BaseMQTTPubSub):
 
     def __init__(
         self: Any,
-        serial_port: str,
-        send_data_topic: str,
         hostname: str,
-        debug: bool = False,
+        serial_port: str,
+        bytestring_output_topic: str,
+        json_output_topic: str,
         **kwargs: Any,
     ):
         """The DAISyPubSub constructor takes a serial port address and
@@ -69,20 +69,20 @@ class DAISyPubSub(BaseMQTTPubSub):
         connects to the serial port specified.
 
         Args:
+            hostname (str): Name of host
             serial_port (str): a serial port to subscribe
                 to. Specified via docker-compose.
-            send_data_topic (str): MQTT topic to publish the data from
-                the port to. Specified via docker-compose.
-            TODO: Remove?
-            debug (bool, optional): If the debug mode is turned on,
-                log statements print to stdout. Defaults to False.
+            bytestring_output_topic (str): MQTT topic on which to
+                publish AIS bytestring data
+            json_output_topic (str): MQTT topic on which to publish
+                AIS JSON data
         """
         super().__init__(**kwargs)
         # Convert contructor parameters to class variables
-        self.serial_port = serial_port
-        self.send_data_topic = send_data_topic
         self.hostname = hostname
-        self.debug = debug
+        self.serial_port = serial_port
+        self.bytestring_output_topic = bytestring_output_topic
+        self.json_output_topic = json_output_topic
 
         # Connect to the MQTT client
         self.connect_client()
@@ -93,6 +93,16 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Setup the serial connection
         self._connect_serial()
+
+        # Log configuration parameters
+        logging.info(
+            f"""DAISyPubSub initialized with parameters:
+    serial_port = {serial_port}
+    bytestring_output_topic = {bytestring_output_topic}
+    json_output_topic = {json_output_topic}
+    hostname = {hostname}
+            """
+        )
 
     def _connect_serial(self: Any) -> None:
         """Sets up a serial connection using python's serial package
@@ -136,15 +146,21 @@ class DAISyPubSub(BaseMQTTPubSub):
             data_payload=data["payload"],
         )
 
-        # Publish the data as JSON to the topic
-        success = self.publish_to_topic(self.send_data_topic, out_json)
+        # Publish the data as JSON to the topic by type
+        if data["type"] == "Binary AIS":
+            send_data_topic = self.bytestring_output_topic
+
+        elif data["type"] == "Decoded AIS":
+            send_data_topic = self.json_output_topic
+
+        success = self.publish_to_topic(send_data_topic, out_json)
         if success:
             logging.info(
-                f"Successfully sent data on channel {self.send_data_topic}: {data}"
+                f"Successfully sent data on channel {send_data_topic}: {data}"
             )
         else:
             logging.info(
-                f"Failed to send data on channel {self.send_data_topic}: {data}"
+                f"Failed to send data on channel {send_data_topic}: {data}"
             )
 
         # Return True if successful else False
@@ -157,7 +173,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         Args:
             binary_payload (str): Payload portion of utf-8 decoded
-            serial bytestring
+                serial bytestring
         """
         # Send the binary payload to MQTT
         self._send_data(
@@ -171,7 +187,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         try:
             decoded_payload = decode(binary_payload)
 
-            # Process the decoded payload
+            # Process the decoded payload by type
             processed_payload = {}
             message_type = type(decoded_payload)
             if message_type in [MessageType1, MessageType2, MessageType3]:
@@ -187,11 +203,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                     decoded_payload.lon * 10000 / 60
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0.0
-                processed_payload["horizontal_speed"] = (
+                processed_payload["horizontal_velocity"] = (
                     decoded_payload.speed * 1852 / 3600
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course  # [deg]
-                processed_payload["vertical_speed"] = 0.0
+                processed_payload["vertical_velocity"] = 0.0
                 # Optional values
                 processed_payload["second"] = decoded_payload.second  # of UTC
                 processed_payload["status"] = decoded_payload.status
@@ -213,9 +229,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                     "longitude"
                 ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0.0
-                processed_payload["horizontal_speed"] = 0.0
+                processed_payload["horizontal_velocity"] = 0.0
                 processed_payload["course"] = 0.0
-                processed_payload["vertical_speed"] = 0.0
+                processed_payload["vertical_velocity"] = 0.0
                 # Optional values
                 processed_payload["year"] = decoded_payload.year  # of UTC
                 processed_payload["month"] = decoded_payload.month  # of UTC
@@ -238,11 +254,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                     decoded_payload.lon * 10000 / 60
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0.0
-                processed_payload["horizontal_speed"] = (
+                processed_payload["horizontal_velocity"] = (
                     decoded_payload.speed * 1852 / 3600
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
-                processed_payload["vertical_speed"] = 0.0
+                processed_payload["vertical_velocity"] = 0.0
                 # Optional values
                 processed_payload["second"] = decoded_payload.second  # of UTC
                 processed_payload["accuracy"] = decoded_payload.accuracy
@@ -250,6 +266,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
             else:
                 logging.info(f"Skipping message type: {message_type}")
+                return
 
             # Send the processed payload to MQTT
             self._send_data(
@@ -322,9 +339,10 @@ class DAISyPubSub(BaseMQTTPubSub):
 
 if __name__ == "__main__":
     sender = DAISyPubSub(
-        serial_port=str(os.environ.get("AIS_SERIAL_PORT")),
-        send_data_topic=str(os.environ.get("AIS_SEND_DATA_TOPIC")),
-        hostname=str(os.environ.get("HOSTNAME")),
         mqtt_ip=str(os.environ.get("MQTT_IP")),
+        hostname=str(os.environ.get("HOSTNAME")),
+        serial_port=str(os.environ.get("AIS_SERIAL_PORT")),
+        bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC"),
+        json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC"),
     )
     sender.main()
