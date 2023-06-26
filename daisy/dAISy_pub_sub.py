@@ -176,7 +176,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                 serial bytestring
         """
         # Send the binary payload to MQTT
-        timestamp = str(int(datetime.utcnow().timestamp()))
+        timestamp = int(datetime.utcnow().timestamp())
         self._send_data(
             {
                 "type": "Binary AIS",
