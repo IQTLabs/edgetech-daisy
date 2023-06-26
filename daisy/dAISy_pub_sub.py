@@ -176,6 +176,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                 serial bytestring
         """
         # Send the binary payload to MQTT
+        timestamp = str(int(datetime.utcnow().timestamp()))
         self._send_data(
             {
                 "type": "Binary AIS",
@@ -189,6 +190,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
             # Process the decoded payload by type
             processed_payload = {}
+            processed_payload["timestamp"] = timestamp
             message_type = type(decoded_payload)
             if message_type in [MessageType1, MessageType2, MessageType3]:
                 # Class A AIS Position Report (Messages 1, 2, and 3)
