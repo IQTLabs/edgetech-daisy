@@ -97,10 +97,10 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Log configuration parameters
         logging.info(
             f"""DAISyPubSub initialized with parameters:
+    hostname = {hostname}
     serial_port = {serial_port}
     bytestring_output_topic = {bytestring_output_topic}
     json_output_topic = {json_output_topic}
-    hostname = {hostname}
             """
         )
 
@@ -348,9 +348,9 @@ class DAISyPubSub(BaseMQTTPubSub):
 
 if __name__ == "__main__":
     sender = DAISyPubSub(
-        mqtt_ip=str(os.environ.get("MQTT_IP")),
-        hostname=str(os.environ.get("HOSTNAME")),
-        serial_port=str(os.environ.get("AIS_SERIAL_PORT")),
+        mqtt_ip=os.environ.get("MQTT_IP", ""),
+        hostname=os.environ.get("HOSTNAME", ""),
+        serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
     )
