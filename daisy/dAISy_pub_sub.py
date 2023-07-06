@@ -133,7 +133,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         """
         # TODO: Provide fields via environment or command line
         out_json = self.generate_payload_json(
-            push_timestamp=str(int(datetime.utcnow().timestamp())),
+            push_timestamp=int(datetime.utcnow().timestamp()),
             device_type="Collector",
             id_=self.hostname,
             deployment_id=f"AISonobuoy-Arlington-{self.hostname}",
@@ -172,7 +172,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                 serial bytestring
         """
         # Send the binary payload to MQTT
-        timestamp = int(datetime.utcnow().timestamp())
+        timestamp = datetime.utcnow().timestamp()
         self._send_data(
             {
                 "type": "Binary AIS",
