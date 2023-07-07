@@ -222,13 +222,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload[
-                    "latitude"
-                ] = decoded_payload.lat  # type: ignore
+                processed_payload["latitude"] = decoded_payload.lat  # type: ignore
                 # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload[
-                    "longitude"
-                ] = decoded_payload.lon  # type: ignore
+                processed_payload["longitude"] = decoded_payload.lon  # type: ignore
                 # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = 0
