@@ -1,4 +1,4 @@
-j"""This file contains the DAISyPubSub class which is a child class of
+"""This file contains the DAISyPubSub class which is a child class of
 BaseMQTTPubSub.  The DAISyPubSub reads data from a specified serial
 port and publishes binary and decoded payloads to the MQTT broker.
 """
