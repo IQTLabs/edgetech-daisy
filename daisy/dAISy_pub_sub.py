@@ -1,4 +1,4 @@
-"""This file contains the DAISyPubSub class which is a child class of
+j"""This file contains the DAISyPubSub class which is a child class of
 BaseMQTTPubSub.  The DAISyPubSub reads data from a specified serial
 port and publishes binary and decoded payloads to the MQTT broker.
 """
@@ -195,26 +195,26 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = (
-                    decoded_payload.lat * 10000 / 60  # type: ignore
+                    decoded_payload.lat * 10000 / 60
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["longitude"] = (
-                    decoded_payload.lon * 10000 / 60  # type: ignore
+                    decoded_payload.lon * 10000 / 60
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = (
-                    decoded_payload.speed * 1852 / 3600  # type: ignore
+                    decoded_payload.speed * 1852 / 3600
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
-                processed_payload["course"] = decoded_payload.course  # type: ignore
+                processed_payload["course"] = decoded_payload.course
                 # [deg]
                 processed_payload["vertical_velocity"] = 0
                 # Optional values
-                processed_payload["second"] = decoded_payload.second  # type: ignore
+                processed_payload["second"] = decoded_payload.second
                 # of UTC
-                processed_payload["status"] = decoded_payload.status  # type: ignore
-                processed_payload["turn"] = decoded_payload.turn  # type: ignore
-                processed_payload["accuracy"] = decoded_payload.accuracy  # type: ignore
-                processed_payload["heading"] = decoded_payload.heading  # type: ignore
-                processed_payload["maneuver"] = decoded_payload.maneuver  # type: ignore
+                processed_payload["status"] = decoded_payload.status
+                processed_payload["turn"] = decoded_payload.turn
+                processed_payload["accuracy"] = decoded_payload.accuracy
+                processed_payload["heading"] = decoded_payload.heading
+                processed_payload["maneuver"] = decoded_payload.maneuver
 
             elif message_type == MessageType4:
                 # AIS Base Station Report (Message 4) and Coordinated Universal Time and Date Response (Message 11)
@@ -222,28 +222,28 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = decoded_payload.lat  # type: ignore
+                processed_payload["latitude"] = decoded_payload.lat
                 # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = decoded_payload.lon  # type: ignore
+                processed_payload["longitude"] = decoded_payload.lon
                 # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = 0
                 processed_payload["course"] = 0
                 processed_payload["vertical_velocity"] = 0
                 # Optional values
-                processed_payload["year"] = decoded_payload.year  # type: ignore
+                processed_payload["year"] = decoded_payload.year
                 # of UTC
-                processed_payload["month"] = decoded_payload.month  # type: ignore
+                processed_payload["month"] = decoded_payload.month
                 # of UTC
-                processed_payload["day"] = decoded_payload.day  # type: ignore
+                processed_payload["day"] = decoded_payload.day
                 # of UTC
-                processed_payload["hour"] = decoded_payload.hour  # type: ignore
+                processed_payload["hour"] = decoded_payload.hour
                 # of UTC
-                processed_payload["minute"] = decoded_payload.minute  # type: ignore
+                processed_payload["minute"] = decoded_payload.minute
                 # of UTC
-                processed_payload["second"] = decoded_payload.second  # type: ignore
+                processed_payload["second"] = decoded_payload.second
                 # of UTC
-                processed_payload["accuracy"] = decoded_payload.accuracy  # type: ignore
+                processed_payload["accuracy"] = decoded_payload.accuracy
 
             elif message_type == MessageType18:
                 # AIS Standard Class B Equipment Position Report (Message 18)
@@ -252,22 +252,22 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = (
-                    decoded_payload.lat * 10000 / 60  # type: ignore
+                    decoded_payload.lat * 10000 / 60
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["longitude"] = (
-                    decoded_payload.lon * 10000 / 60  # type: ignore
+                    decoded_payload.lon * 10000 / 60
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = (
-                    decoded_payload.speed * 1852 / 3600  # type: ignore
+                    decoded_payload.speed * 1852 / 3600
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
-                processed_payload["course"] = decoded_payload.course  # type: ignore
+                processed_payload["course"] = decoded_payload.course
                 processed_payload["vertical_velocity"] = 0
                 # Optional values
-                processed_payload["second"] = decoded_payload.second  # type: ignore
+                processed_payload["second"] = decoded_payload.second
                 # of UTC
-                processed_payload["accuracy"] = decoded_payload.accuracy  # type: ignore
-                processed_payload["heading"] = decoded_payload.heading  # type: ignore
+                processed_payload["accuracy"] = decoded_payload.accuracy
+                processed_payload["heading"] = decoded_payload.heading
 
             else:
                 logging.info(f"Skipping message type: {message_type}")
