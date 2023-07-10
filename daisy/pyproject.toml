@@ -2,15 +2,26 @@
 name = "daisy"
 version = "0.1.0"
 description = "MQTT client to take read serial messages from aliased port and publish them to an MQTT topic"
-authors = ["Ari <achadda@iqt.org>", "Rob <rcaudill@iqt.org>", "Logan <lkunka@iqt.org>", "Mona <mgogia@iqt.org>", "Jon <jmeade@iqt.org>", "Mike <mchadwick@iqt.org>"]
+authors = ["Ari <achadda@iqt.org>", "Rob <rcaudill@iqt.org>", "Logan <lkunka@iqt.org>", "Mona <mgogia@iqt.org>", "Jon <jmeade@iqt.org>", "Mike <mchadwick@iqt.org>", "Ray <raymond.leclair@springbok.io>"]
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+coloredlogs = "^15.0.1"
+paho-mqtt = "^1.5.0"
+pyais = "^2.5.4"
 pyserial = "^3.5"
-schedule = "^1.1.0"
+schedule = "^1.2.0"
 
 [tool.poetry.dev-dependencies]
+black = "^23.3.0"
+pylint = "^2.17.4"
+flake8 = "^6.0.0"
+mypy = "^1.4.0"
+ipython = "^8.14.0"
+jupyterlab = "^4.0.2"
+notebook = "^6.5.4"
+pkgconfig = "^1.5.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
