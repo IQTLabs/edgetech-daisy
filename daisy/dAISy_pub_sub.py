@@ -97,6 +97,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Log configuration parameters
         logging.info(
             f"""DAISyPubSub initialized with parameters:
+    hi there
     hostname = {hostname}
     serial_port = {serial_port}
     bytestring_output_topic = {bytestring_output_topic}
