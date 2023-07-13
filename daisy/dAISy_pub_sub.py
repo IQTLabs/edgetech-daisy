@@ -300,6 +300,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                 # Read and handle waiting serial bytes
                 if self.serial.in_waiting:
                     try:
+                        logging.info(f"Attempting to read {self.serial.in_waiting} bytes in waiting")
                         serial_bytes = self.serial.read(self.serial.in_waiting)
                         logging.info(f"Read {self.serial.in_waiting} bytes in waiting")
 
