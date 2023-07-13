@@ -301,6 +301,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                 if self.serial.in_waiting:
                     try:
                         serial_bytes = self.serial.read(self.serial.in_waiting)
+                        logging.info(f"Read {self.serial.in_waiting} bytes in waiting")
+
                     except Exception as exception:
                         logging.warning(
                             f"Could not read serial bytes in waiting: {exception}"
@@ -308,26 +310,45 @@ class DAISyPubSub(BaseMQTTPubSub):
                         continue
 
                     # Process required payloads when complete
-                    serial_payloads = serial_bytes.decode().split("\n")
-                    for serial_payload in serial_payloads:
-                        if "AIVDM" in serial_payload and "\r" in serial_payload:
-                            # Payload is required and complete
-                            self.process_serial_payload(serial_payload)
+                    try:
+                        serial_payloads = serial_bytes.decode().split("\n")
+                        for serial_payload in serial_payloads:
+                            logging.info(f"Processing serial payload: {serial_payload}")
+                            if "AIVDM" in serial_payload and "\r" in serial_payload:
+                                # Payload is required and complete
+                                logging.info("Payload is required and complete")
+                                self.process_serial_payload(serial_payload)
 
-                        elif "sync" in serial_payload:
-                            # Payload is not required
-                            continue
+                            elif "sync" in serial_payload:
+                                # Payload is not required
+                                logging.info("Payload is not required")
+                                continue
 
-                        elif "AIVDM" in serial_payload:
-                            # Payload is required, but not complete: beginning only
-                            payload_beginng = serial_payload
+                            elif "AIVDM" in serial_payload:
+                                # Payload is required, but not complete: beginning only
+                                logging.info(
+                                    "Payload is required, but not complete: beginning only"
+                                )
+                                payload_beginng = serial_payload
 
-                        elif payload_beginning != "":
-                            # Payload is required, but not complete: ending only
-                            self.process_serial_payload(
-                                payload_beginning + serial_payload
-                            )
-                            payload_beginning = ""
+                            elif payload_beginning != "":
+                                # Payload is required, but not complete: ending only
+                                logging.info(
+                                    "Payload is required, but not complete: ending only"
+                                )
+                                logging.info(
+                                    "Complete payload: {payload_beginning + serial_payload}"
+                                )
+                                self.process_serial_payload(
+                                    payload_beginning + serial_payload
+                                )
+                                payload_beginning = ""
+
+                    except Exception as exception:
+                        logging.warning(
+                            f"Could not process serial payloads: {serial_payloads}: {exception}"
+                        )
+                        continue
 
                 # Flush any scheduled processes that are waiting
                 schedule.run_pending()
