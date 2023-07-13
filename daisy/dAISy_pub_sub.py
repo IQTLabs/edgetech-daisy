@@ -97,7 +97,6 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Log configuration parameters
         logging.info(
             f"""DAISyPubSub initialized with parameters:
-    hi there
     hostname = {hostname}
     serial_port = {serial_port}
     bytestring_output_topic = {bytestring_output_topic}
@@ -109,8 +108,8 @@ class DAISyPubSub(BaseMQTTPubSub):
         """Sets up a serial connection using python's serial package
         to the port specified in the constructor.
         """
-        # Setup serial connection
-        self.serial = serial.Serial(self.serial_port, timeout=0.001)
+        # Setup serial connection without blocking
+        self.serial = serial.Serial(self.serial_port, timeout=0)
         logging.debug(f"Connected to Serial Bus on {self.serial_port}")
 
     def _disconnect_serial(self: Any) -> None:
@@ -301,9 +300,10 @@ class DAISyPubSub(BaseMQTTPubSub):
                 # Read and handle waiting serial bytes
                 if self.serial.in_waiting:
                     try:
-                        logging.info(f"Attempting to read {self.serial.in_waiting} bytes in waiting")
-                        serial_bytes = self.serial.read(self.serial.in_waiting)
-                        logging.info(f"Read {self.serial.in_waiting} bytes in waiting")
+                        in_wairint = self.serial.in_waiting
+                        logging.debug(f"Attempting to read {in_waiting} bytes in waiting")
+                        serial_bytes = self.serial.read(in_waiting)
+                        logging.debug(f"Read {in_waiting} bytes in waiting")
 
                     except Exception as exception:
                         logging.warning(
@@ -315,31 +315,31 @@ class DAISyPubSub(BaseMQTTPubSub):
                     try:
                         serial_payloads = serial_bytes.decode().split("\n")
                         for serial_payload in serial_payloads:
-                            logging.info(f"Processing serial payload: {serial_payload}")
+                            logging.debug(f"Processing serial payload: {serial_payload}")
                             if "AIVDM" in serial_payload and "\r" in serial_payload:
                                 # Payload is required and complete
-                                logging.info("Payload is required and complete")
+                                logging.debug("Payload is required and complete")
                                 self.process_serial_payload(serial_payload)
 
                             elif "sync" in serial_payload:
                                 # Payload is not required
-                                logging.info("Payload is not required")
+                                logging.debug("Payload is not required")
                                 continue
 
                             elif "AIVDM" in serial_payload:
                                 # Payload is required, but not complete: beginning only
-                                logging.info(
+                                logging.debug(
                                     "Payload is required, but not complete: beginning only"
                                 )
                                 payload_beginng = serial_payload
 
                             elif payload_beginning != "":
                                 # Payload is required, but not complete: ending only
-                                logging.info(
+                                logging.debug(
                                     "Payload is required, but not complete: ending only"
                                 )
-                                logging.info(
-                                    "Complete payload: {payload_beginning + serial_payload}"
+                                logging.debug(
+                                    f"Complete payload: {payload_beginning + serial_payload}"
                                 )
                                 self.process_serial_payload(
                                     payload_beginning + serial_payload
