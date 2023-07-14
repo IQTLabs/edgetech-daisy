@@ -301,7 +301,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                 if self.serial.in_waiting:
                     try:
                         in_waiting = self.serial.in_waiting
-                        logging.debug(f"Attempting to read {in_waiting} bytes in waiting")
+                        logging.debug(
+                            f"Attempting to read {in_waiting} bytes in waiting"
+                        )
                         serial_bytes = self.serial.read(in_waiting)
                         logging.debug(f"Read {in_waiting} bytes in waiting")
 
@@ -315,7 +317,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                     try:
                         serial_payloads = serial_bytes.decode().split("\n")
                         for serial_payload in serial_payloads:
-                            logging.debug(f"Processing serial payload: {serial_payload}")
+                            logging.debug(
+                                f"Processing serial payload: {serial_payload}"
+                            )
                             if "AIVDM" in serial_payload and "\r" in serial_payload:
                                 # Payload is required and complete
                                 logging.debug("Payload is required and complete")
