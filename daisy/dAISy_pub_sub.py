@@ -110,14 +110,14 @@ class DAISyPubSub(BaseMQTTPubSub):
         """
         # Setup serial connection without blocking
         self.serial = serial.Serial(self.serial_port, timeout=0)
-        logging.debug(f"Connected to Serial Bus on {self.serial_port}")
+        logging.info(f"Connected to Serial Bus on {self.serial_port}")
 
     def _disconnect_serial(self: Any) -> None:
         """Disconnects the serial connection using python's serial
         package.
         """
         self.serial.close()
-        logging.debug(f"Disconnected from Serial Bus on {self.serial_port}")
+        logging.info(f"Disconnected from Serial Bus on {self.serial_port}")
 
     def _send_data(self: Any, data: Dict[str, str]) -> bool:
         """Leverages edgetech-core functionality to publish a JSON
@@ -300,7 +300,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                 # Read and handle waiting serial bytes
                 if self.serial.in_waiting:
                     try:
-                        in_wairint = self.serial.in_waiting
+                        in_waiting = self.serial.in_waiting
                         logging.debug(f"Attempting to read {in_waiting} bytes in waiting")
                         serial_bytes = self.serial.read(in_waiting)
                         logging.debug(f"Read {in_waiting} bytes in waiting")
@@ -321,7 +321,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                                 logging.debug("Payload is required and complete")
                                 self.process_serial_payload(serial_payload)
 
-                            elif "sync" in serial_payload:
+                            elif "sync" in serial_payload or "error" in serial_payload:
                                 # Payload is not required
                                 logging.debug("Payload is not required")
                                 continue
