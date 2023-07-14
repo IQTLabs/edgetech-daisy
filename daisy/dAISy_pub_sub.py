@@ -108,16 +108,16 @@ class DAISyPubSub(BaseMQTTPubSub):
         """Sets up a serial connection using python's serial package
         to the port specified in the constructor.
         """
-        # Setup serial connection
-        self.serial = serial.Serial(self.serial_port, timeout=0.001)
-        logging.debug(f"Connected to Serial Bus on {self.serial_port}")
+        # Setup serial connection without blocking
+        self.serial = serial.Serial(self.serial_port, timeout=0)
+        logging.info(f"Connected to Serial Bus on {self.serial_port}")
 
     def _disconnect_serial(self: Any) -> None:
         """Disconnects the serial connection using python's serial
         package.
         """
         self.serial.close()
-        logging.debug(f"Disconnected from Serial Bus on {self.serial_port}")
+        logging.info(f"Disconnected from Serial Bus on {self.serial_port}")
 
     def _send_data(self: Any, data: Dict[str, str]) -> bool:
         """Leverages edgetech-core functionality to publish a JSON
@@ -300,7 +300,13 @@ class DAISyPubSub(BaseMQTTPubSub):
                 # Read and handle waiting serial bytes
                 if self.serial.in_waiting:
                     try:
-                        serial_bytes = self.serial.read(self.serial.in_waiting)
+                        in_waiting = self.serial.in_waiting
+                        logging.debug(
+                            f"Attempting to read {in_waiting} bytes in waiting"
+                        )
+                        serial_bytes = self.serial.read(in_waiting)
+                        logging.debug(f"Read {in_waiting} bytes in waiting")
+
                     except Exception as exception:
                         logging.warning(
                             f"Could not read serial bytes in waiting: {exception}"
@@ -308,26 +314,47 @@ class DAISyPubSub(BaseMQTTPubSub):
                         continue
 
                     # Process required payloads when complete
-                    serial_payloads = serial_bytes.decode().split("\n")
-                    for serial_payload in serial_payloads:
-                        if "AIVDM" in serial_payload and "\r" in serial_payload:
-                            # Payload is required and complete
-                            self.process_serial_payload(serial_payload)
-
-                        elif "sync" in serial_payload:
-                            # Payload is not required
-                            continue
-
-                        elif "AIVDM" in serial_payload:
-                            # Payload is required, but not complete: beginning only
-                            payload_beginng = serial_payload
-
-                        elif payload_beginning != "":
-                            # Payload is required, but not complete: ending only
-                            self.process_serial_payload(
-                                payload_beginning + serial_payload
+                    try:
+                        serial_payloads = serial_bytes.decode().split("\n")
+                        for serial_payload in serial_payloads:
+                            logging.debug(
+                                f"Processing serial payload: {serial_payload}"
                             )
-                            payload_beginning = ""
+                            if "AIVDM" in serial_payload and "\r" in serial_payload:
+                                # Payload is required and complete
+                                logging.debug("Payload is required and complete")
+                                self.process_serial_payload(serial_payload)
+
+                            elif "sync" in serial_payload or "error" in serial_payload:
+                                # Payload is not required
+                                logging.debug("Payload is not required")
+                                continue
+
+                            elif "AIVDM" in serial_payload:
+                                # Payload is required, but not complete: beginning only
+                                logging.debug(
+                                    "Payload is required, but not complete: beginning only"
+                                )
+                                payload_beginng = serial_payload
+
+                            elif payload_beginning != "":
+                                # Payload is required, but not complete: ending only
+                                logging.debug(
+                                    "Payload is required, but not complete: ending only"
+                                )
+                                logging.debug(
+                                    f"Complete payload: {payload_beginning + serial_payload}"
+                                )
+                                self.process_serial_payload(
+                                    payload_beginning + serial_payload
+                                )
+                                payload_beginning = ""
+
+                    except Exception as exception:
+                        logging.warning(
+                            f"Could not process serial payloads: {serial_payloads}: {exception}"
+                        )
+                        continue
 
                 # Flush any scheduled processes that are waiting
                 schedule.run_pending()
