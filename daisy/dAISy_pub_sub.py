@@ -388,6 +388,6 @@ if __name__ == "__main__":
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
-        exit_on_exception=ast.literal_eval(os.environ.get("EXIT_ON_EXCEPTION", ""))
+        exit_on_exception=ast.literal_eval(os.environ.get("EXIT_ON_EXCEPTION", "True")),
     )
     sender.main()
