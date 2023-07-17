@@ -363,7 +363,7 @@ class DAISyPubSub(BaseMQTTPubSub):
                     except Exception as exception:
                         if self.exit_on_exception:
                             raise
-                        logging.warning(
+                        logging.error(
                             f"Could not process serial payloads: {serial_payloads}: {exception}"
                         )
                         continue
