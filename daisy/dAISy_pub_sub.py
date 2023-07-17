@@ -376,8 +376,8 @@ class DAISyPubSub(BaseMQTTPubSub):
 
             except KeyboardInterrupt as exception:
                 # If keyboard interrupt, fail gracefully
+                logging.warning("Received keyboard interrupt: exiting gracefully")
                 self._disconnect_serial()
-                logging.error(exception)
                 sys.exit()
 
 
