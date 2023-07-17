@@ -2,6 +2,7 @@
 BaseMQTTPubSub.  The DAISyPubSub reads data from a specified serial
 port and publishes binary and decoded payloads to the MQTT broker.
 """
+import ast
 import coloredlogs
 from datetime import datetime
 import json
@@ -62,6 +63,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         serial_port: str,
         bytestring_output_topic: str,
         json_output_topic: str,
+        exit_on_exception: bool = True,
         **kwargs: Any,
     ):
         """The DAISyPubSub constructor takes a serial port address and
@@ -76,6 +78,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                 publish AIS bytestring data
             json_output_topic (str): MQTT topic on which to publish
                 AIS JSON data
+            exit_on_exception (bool): Exit on any exception if True
+                (the default), continue if False
         """
         super().__init__(**kwargs)
         # Convert contructor parameters to class variables
@@ -83,6 +87,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self.serial_port = serial_port
         self.bytestring_output_topic = bytestring_output_topic
         self.json_output_topic = json_output_topic
+        self.exit_on_exception = exit_on_exception
 
         # Connect to the MQTT client
         self.connect_client()
@@ -101,6 +106,7 @@ class DAISyPubSub(BaseMQTTPubSub):
     serial_port = {serial_port}
     bytestring_output_topic = {bytestring_output_topic}
     json_output_topic = {json_output_topic}
+    exit_on_exception = {exit_on_exception}
             """
         )
 
@@ -282,6 +288,8 @@ class DAISyPubSub(BaseMQTTPubSub):
             )
 
         except UnknownMessageException as exception:
+            if self.exit_on_exception:
+                raise
             logging.error(f"Could not decode binary payload: {exception}")
 
     def main(self: Any) -> None:
@@ -308,7 +316,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                         logging.debug(f"Read {in_waiting} bytes in waiting")
 
                     except Exception as exception:
-                        logging.warning(
+                        if self.exit_on_exception:
+                            raise
+                        logging.error(
                             f"Could not read serial bytes in waiting: {exception}"
                         )
                         continue
@@ -351,6 +361,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                                 payload_beginning = ""
 
                     except Exception as exception:
+                        if self.exit_on_exception:
+                            raise
                         logging.warning(
                             f"Could not process serial payloads: {serial_payloads}: {exception}"
                         )
@@ -376,5 +388,6 @@ if __name__ == "__main__":
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
+        exit_on_exception=ast.literal_eval(os.environ.get("EXIT_ON_EXCEPTION", ""))
     )
     sender.main()
