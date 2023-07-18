@@ -288,9 +288,9 @@ class DAISyPubSub(BaseMQTTPubSub):
             )
 
         except UnknownMessageException as exception:
+            logging.error(f"Could not decode binary payload: {exception}")
             if self.exit_on_exception:
                 raise
-            logging.error(f"Could not decode binary payload: {exception}")
 
     def main(self: Any) -> None:
         """Main loop to setup the heartbeat which keeps the TCP/IP
@@ -316,11 +316,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                         logging.debug(f"Read {in_waiting} bytes in waiting")
 
                     except Exception as exception:
-                        if self.exit_on_exception:
-                            raise
                         logging.error(
                             f"Could not read serial bytes in waiting: {exception}"
                         )
+                        if self.exit_on_exception:
+                            raise
                         continue
 
                     # Process required payloads when complete
@@ -361,11 +361,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                                 payload_beginning = ""
 
                     except Exception as exception:
-                        if self.exit_on_exception:
-                            raise
                         logging.error(
                             f"Could not process serial payloads: {serial_payloads}: {exception}"
                         )
+                        if self.exit_on_exception:
+                            raise
                         continue
 
                 # Flush any scheduled processes that are waiting
