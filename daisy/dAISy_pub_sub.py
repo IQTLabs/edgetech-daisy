@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 from time import sleep
+import traceback
 from typing import Any, Dict
 
 from pyais import decode
@@ -63,7 +64,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         serial_port: str,
         bytestring_output_topic: str,
         json_output_topic: str,
-        exit_on_exception: bool = True,
+        continue_on_exception: bool = False,
         **kwargs: Any,
     ):
         """The DAISyPubSub constructor takes a serial port address and
@@ -78,8 +79,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                 publish AIS bytestring data
             json_output_topic (str): MQTT topic on which to publish
                 AIS JSON data
-            exit_on_exception (bool): Exit on any exception if True
-                (the default), continue if False
+            continue_on_exception (bool): Continue on unhandled
+                exceptions if True, raise exception if False (the default)
         """
         super().__init__(**kwargs)
         # Convert contructor parameters to class variables
@@ -87,7 +88,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self.serial_port = serial_port
         self.bytestring_output_topic = bytestring_output_topic
         self.json_output_topic = json_output_topic
-        self.exit_on_exception = exit_on_exception
+        self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
         self.connect_client()
@@ -106,7 +107,7 @@ class DAISyPubSub(BaseMQTTPubSub):
     serial_port = {serial_port}
     bytestring_output_topic = {bytestring_output_topic}
     json_output_topic = {json_output_topic}
-    exit_on_exception = {exit_on_exception}
+    continue_on_exception = {continue_on_exception}
             """
         )
 
@@ -288,9 +289,11 @@ class DAISyPubSub(BaseMQTTPubSub):
             )
 
         except UnknownMessageException as exception:
-            if self.exit_on_exception:
-                raise
-            logging.error(f"Could not decode binary payload: {exception}")
+            # Only a small subset of all NMEA messages is supported,
+            # but if we get here, the external device produced a
+            # message we don't care about anyway
+            logging.warning(f"Unsupported NMEA message: {exception}")
+            return
 
     def main(self: Any) -> None:
         """Main loop to setup the heartbeat which keeps the TCP/IP
@@ -307,66 +310,46 @@ class DAISyPubSub(BaseMQTTPubSub):
             try:
                 # Read and handle waiting serial bytes
                 if self.serial.in_waiting:
-                    try:
-                        in_waiting = self.serial.in_waiting
-                        logging.debug(
-                            f"Attempting to read {in_waiting} bytes in waiting"
-                        )
-                        serial_bytes = self.serial.read(in_waiting)
-                        logging.debug(f"Read {in_waiting} bytes in waiting")
-
-                    except Exception as exception:
-                        if self.exit_on_exception:
-                            raise
-                        logging.error(
-                            f"Could not read serial bytes in waiting: {exception}"
-                        )
-                        continue
+                    in_waiting = self.serial.in_waiting
+                    logging.debug(f"Attempting to read {in_waiting} bytes in waiting")
+                    serial_bytes = self.serial.read(in_waiting)
+                    logging.debug(f"Read {in_waiting} bytes in waiting")
 
                     # Process required payloads when complete
-                    try:
-                        serial_payloads = serial_bytes.decode().split("\n")
-                        for serial_payload in serial_payloads:
+                    serial_payloads = serial_bytes.decode().split("\n")
+                    for serial_payload in serial_payloads:
+                        logging.debug(f"Processing serial payload: {serial_payload}")
+                        if "AIVDM" in serial_payload and "\r" in serial_payload:
+                            # Payload is required and complete
+                            logging.debug("Payload is required and complete")
+                            self.process_serial_payload(serial_payload)
+
+                        elif "AIVDM" not in serial_payload:
+                            # Payload is not required, or not
+                            # complete: first AIVDM payload ending
+                            # only
+                            logging.debug("Payload is not required, or not complete")
+                            continue
+
+                        elif "AIVDM" in serial_payload:
+                            # Payload is required, but not complete: beginning only
                             logging.debug(
-                                f"Processing serial payload: {serial_payload}"
+                                "Payload is required, but not complete: beginning only"
                             )
-                            if "AIVDM" in serial_payload and "\r" in serial_payload:
-                                # Payload is required and complete
-                                logging.debug("Payload is required and complete")
-                                self.process_serial_payload(serial_payload)
+                            payload_beginng = serial_payload
 
-                            elif "sync" in serial_payload or "error" in serial_payload:
-                                # Payload is not required
-                                logging.debug("Payload is not required")
-                                continue
-
-                            elif "AIVDM" in serial_payload:
-                                # Payload is required, but not complete: beginning only
-                                logging.debug(
-                                    "Payload is required, but not complete: beginning only"
-                                )
-                                payload_beginng = serial_payload
-
-                            elif payload_beginning != "":
-                                # Payload is required, but not complete: ending only
-                                logging.debug(
-                                    "Payload is required, but not complete: ending only"
-                                )
-                                logging.debug(
-                                    f"Complete payload: {payload_beginning + serial_payload}"
-                                )
-                                self.process_serial_payload(
-                                    payload_beginning + serial_payload
-                                )
-                                payload_beginning = ""
-
-                    except Exception as exception:
-                        if self.exit_on_exception:
-                            raise
-                        logging.error(
-                            f"Could not process serial payloads: {serial_payloads}: {exception}"
-                        )
-                        continue
+                        elif payload_beginning != "":
+                            # Payload is required, but not complete: ending only
+                            logging.debug(
+                                "Payload is required, but not complete: ending only"
+                            )
+                            logging.debug(
+                                f"Complete payload: {payload_beginning + serial_payload}"
+                            )
+                            self.process_serial_payload(
+                                payload_beginning + serial_payload
+                            )
+                            payload_beginning = ""
 
                 # Flush any scheduled processes that are waiting
                 schedule.run_pending()
@@ -380,6 +363,13 @@ class DAISyPubSub(BaseMQTTPubSub):
                 self._disconnect_serial()
                 sys.exit()
 
+            except Exception as exception:
+                # Optionally continue on exception
+                if self.continue_on_exception:
+                    traceback.print_exc()
+                else:
+                    raise
+
 
 if __name__ == "__main__":
     sender = DAISyPubSub(
@@ -388,6 +378,8 @@ if __name__ == "__main__":
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
-        exit_on_exception=ast.literal_eval(os.environ.get("EXIT_ON_EXCEPTION", "True")),
+        continue_on_exception=ast.literal_eval(
+            os.environ.get("CONTINUE_ON_EXCEPTION", "True")
+        ),
     )
     sender.main()
