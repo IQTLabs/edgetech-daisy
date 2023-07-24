@@ -379,7 +379,7 @@ if __name__ == "__main__":
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
-            os.environ.get("CONTINUE_ON_EXCEPTION", "True")
+            os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
     )
     sender.main()
