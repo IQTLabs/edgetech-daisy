@@ -13,7 +13,7 @@ from time import sleep
 import traceback
 from typing import Any, Dict
 
-from pyais import decode
+from pyais import decode as ais_decode
 from pyais.exceptions import UnknownMessageException
 from pyais.messages import (
     MessageType1,
@@ -189,7 +189,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Decode the binary payload
         try:
-            decoded_payload = decode(binary_payload)
+            decoded_payload = ais_decode(binary_payload)
 
             # Process the decoded payload by type
             processed_payload = {}
