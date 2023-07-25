@@ -3,7 +3,6 @@ BaseMQTTPubSub.  The DAISyPubSub reads data from a specified serial
 port and publishes binary and decoded payloads to the MQTT broker.
 """
 import ast
-import coloredlogs
 from datetime import datetime
 import json
 import logging
@@ -11,8 +10,10 @@ import os
 import sys
 from time import sleep
 import traceback
-from typing import Any, Dict
+from typing import Any, Dict, Union
 
+import coloredlogs
+import paho.mqtt.client as mqtt
 from pyais import decode as ais_decode
 from pyais.exceptions import UnknownMessageException
 from pyais.messages import (
@@ -22,8 +23,8 @@ from pyais.messages import (
     MessageType4,
     MessageType18,
 )
-import serial
 import schedule
+import serial
 
 from base_mqtt_pub_sub import BaseMQTTPubSub
 
@@ -62,6 +63,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self: Any,
         hostname: str,
         serial_port: str,
+        config_topic: str,
         bytestring_output_topic: str,
         json_output_topic: str,
         continue_on_exception: bool = False,
@@ -75,6 +77,8 @@ class DAISyPubSub(BaseMQTTPubSub):
             hostname (str): Name of host
             serial_port (str): a serial port to subscribe
                 to. Specified via docker-compose.
+            config_topic (str): MQTT topic for subscribing to config
+                messages
             bytestring_output_topic (str): MQTT topic on which to
                 publish AIS bytestring data
             json_output_topic (str): MQTT topic on which to publish
@@ -83,9 +87,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                 exceptions if True, raise exception if False (the default)
         """
         super().__init__(**kwargs)
-        # Convert contructor parameters to class variables
         self.hostname = hostname
         self.serial_port = serial_port
+        self.config_topic = config_topic
         self.bytestring_output_topic = bytestring_output_topic
         self.json_output_topic = json_output_topic
         self.continue_on_exception = continue_on_exception
@@ -93,23 +97,71 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Connect to the MQTT client
         self.connect_client()
         sleep(1)
-
-        # Publish a message after successful connection to the MQTT broker
         self.publish_registration("dAISy Sender Registration")
 
         # Setup the serial connection
         self._connect_serial()
 
         # Log configuration parameters
-        logging.info(
-            f"""DAISyPubSub initialized with parameters:
-    hostname = {hostname}
-    serial_port = {serial_port}
-    bytestring_output_topic = {bytestring_output_topic}
-    json_output_topic = {json_output_topic}
-    continue_on_exception = {continue_on_exception}
-            """
+        self._log_config()
+
+    def _config_callback(
+        self,
+        _client: Union[mqtt.Client, None],
+        _userdata: Union[Dict[Any, Any], None],
+        msg: Union[mqtt.MQTTMessage, Dict[Any, Any]],
+    ) -> None:
+        """
+        Process config message.
+
+        Parameters
+        ----------
+        _client: Union[mqtt.Client, None]
+            MQTT client
+        _userdata: Union[Dict[Any, Any], None]
+            Any required user data
+        msg: Union[mqtt.MQTTMessage, Dict[Any, Any]]
+            An MQTT message, or dictionary
+
+        Returns
+        -------
+        None
+        """
+        # Assign data attributes allowed to change during operation,
+        # ignoring config message data without a "daisy" key
+        if type(msg) == mqtt.MQTTMessage:
+            data = self.decode_payload(msg.payload)
+        else:
+            data = msg["data"]
+        if "daisy" not in data:
+            return
+        logging.info(f"Processing config message data: {data}")
+        config = data["daisy"]
+        self.hostname = config.get("hostname", self.hostname)
+        self.serial_port = config.get("serial_port", self.serial_port)
+        self.config_topic = config.get("config_topic", self.config_topic)
+        self.bytestring_output_topic = config.get(
+            "bytestring_output_topic", self.bytestring_output_topic
         )
+        self.json_output_topic = config.get("json_output_topic", self.json_output_topic)
+        self.continue_on_exception = config.get(
+            "continue_on_exception", self.continue_on_exception
+        )
+
+        # Log configuration parameters
+        self._log_config()
+
+    def _log_config(self: Any) -> None:
+        """Logs all paramters that can be set on construction."""
+        config = {
+            "hostname": self.hostname,
+            "serial_port": self.serial_port,
+            "config_topic": self.config_topic,
+            "bytestring_output_topic": self.bytestring_output_topic,
+            "json_output_topic": self.json_output_topic,
+            "continue_on_exception": self.continue_on_exception,
+        }
+        logging.info(f"DAISyPubSub configuration:\n{json.dumps(config, indent=4)}")
 
     def _connect_serial(self: Any) -> None:
         """Sets up a serial connection using python's serial package
@@ -300,10 +352,14 @@ class DAISyPubSub(BaseMQTTPubSub):
         connection alive, publish serial data to the MQTT broker, and
         keep the main thread alive.
         """
-        # Schedule the heartbeat
+
+        # Schedule module heartbeat
         schedule.every(10).seconds.do(
             self.publish_heartbeat, payload="dAISy Sender Heartbeat"
         )
+
+        # Subscribe to required topics
+        self.add_subscribe_topic(self.config_topic, self._config_callback)
 
         payload_beginning = ""
         while True:
@@ -371,15 +427,22 @@ class DAISyPubSub(BaseMQTTPubSub):
                     raise
 
 
-if __name__ == "__main__":
-    sender = DAISyPubSub(
+def make_daisy() -> DAISyPubSub:
+    """Instantiates DAISyPubSub."""
+    return DAISyPubSub(
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
+        config_topic=os.getenv("CONFIG_TOPIC", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
     )
+
+
+if __name__ == "__main__":
+    # Instantiate DAISyPubSub and execute
+    sender = make_daisy()
     sender.main()
