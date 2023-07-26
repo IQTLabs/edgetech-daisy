@@ -352,7 +352,6 @@ class DAISyPubSub(BaseMQTTPubSub):
         connection alive, publish serial data to the MQTT broker, and
         keep the main thread alive.
         """
-
         # Schedule module heartbeat
         schedule.every(10).seconds.do(
             self.publish_heartbeat, payload="dAISy Sender Heartbeat"
@@ -361,6 +360,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Subscribe to required topics
         self.add_subscribe_topic(self.config_topic, self._config_callback)
 
+        logging.info("System initialized and running")
         payload_beginning = ""
         while True:
             try:
@@ -444,5 +444,5 @@ def make_daisy() -> DAISyPubSub:
 
 if __name__ == "__main__":
     # Instantiate DAISyPubSub and execute
-    sender = make_daisy()
-    sender.main()
+    diasy = make_daisy()
+    diasy.main()
