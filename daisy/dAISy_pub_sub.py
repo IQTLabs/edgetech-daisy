@@ -12,7 +12,7 @@ from time import sleep
 from typing import Any, Dict
 
 from pyais import decode
-from pyais.exceptions import UnknownMessageException
+from pyais.exceptions import UnknownMessageException, MissingMultipartMessageException
 from pyais.messages import (
     MessageType1,
     MessageType2,
@@ -195,14 +195,14 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = (
-                    decoded_payload.lat * 10000 / 60
+                    decoded_payload.lat
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["longitude"] = (
-                    decoded_payload.lon * 10000 / 60
+                    decoded_payload.lon
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = (
-                    decoded_payload.speed * 1852 / 3600
+                    decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
                 # [deg]
@@ -252,14 +252,14 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = (
-                    decoded_payload.lat * 10000 / 60
+                    decoded_payload.lat
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["longitude"] = (
-                    decoded_payload.lon * 10000 / 60
+                    decoded_payload.lon
                 )  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = (
-                    decoded_payload.speed * 1852 / 3600
+                    decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
                 processed_payload["vertical_velocity"] = 0
@@ -283,6 +283,10 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         except UnknownMessageException as exception:
             logging.error(f"Could not decode binary payload: {exception}")
+        
+        ## TODO: Investigate why these are needed
+        except MissingMultipartMessageException as exception:
+            logging.error(f"Message Payload Composition error: {exception}")
 
     def main(self: Any) -> None:
         """Main loop to setup the heartbeat which keeps the TCP/IP
