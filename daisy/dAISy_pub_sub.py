@@ -109,7 +109,8 @@ class DAISyPubSub(BaseMQTTPubSub):
         to the port specified in the constructor.
         """
         # Setup serial connection without blocking
-        self.serial = serial.Serial(self.serial_port, timeout=0)
+        # dAISy default baud is 38400
+        self.serial = serial.Serial(self.serial_port, timeout=0, baudrate=38400)
         logging.info(f"Connected to Serial Bus on {self.serial_port}")
 
     def _disconnect_serial(self: Any) -> None:
