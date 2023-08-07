@@ -242,7 +242,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Decode the binary payload
         try:
-            decoded_payload = ais_decode(binary_payload)
+            decoded_payload = decode(binary_payload)
 
             # Process the decoded payload by type
             processed_payload = {}
