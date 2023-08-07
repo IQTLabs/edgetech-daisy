@@ -105,6 +105,31 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Log configuration parameters
         self._log_config()
 
+    def decode_payload(
+        self, msg: Union[mqtt.MQTTMessage, str], data_payload_type: str
+    ) -> Dict[Any, Any]:
+        """
+        Decode the payload carried by a message.
+
+        Parameters
+        ----------
+        payload: mqtt.MQTTMessage
+            The MQTT message
+        data_payload_type: str
+            The data payload type
+
+        Returns
+        -------
+        data : Dict[Any, Any]
+            The data payload of the message payload
+        """
+        if type(msg) == mqtt.MQTTMessage:
+            payload = msg.payload.decode()
+        else:
+            payload = msg
+        data_payload = json.loads(payload)[data_payload_type]
+        return json.loads(data_payload)
+
     def _config_callback(
         self,
         _client: Union[mqtt.Client, None],
@@ -129,10 +154,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         """
         # Assign data attributes allowed to change during operation,
         # ignoring config message data without a "daisy" key
-        if type(msg) == mqtt.MQTTMessage:
-            data = self.decode_payload(msg.payload)
-        else:
-            data = msg["data"]
+        data = self.decode_payload(msg, "Configuration")
         if "daisy" not in data:
             return
         logging.info(f"Processing config message data: {data}")
@@ -254,14 +276,16 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-class-a-reports
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = (
-                    decoded_payload.lat
-                )  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = (
-                    decoded_payload.lon
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "latitude"
+                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "longitude"
+                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
-                processed_payload["horizontal_velocity"] = (
+                processed_payload[
+                    "horizontal_velocity"
+                ] = (
                     decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
@@ -311,14 +335,16 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-class-b-reports
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = (
-                    decoded_payload.lat
-                )  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = (
-                    decoded_payload.lon
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "latitude"
+                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "longitude"
+                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
-                processed_payload["horizontal_velocity"] = (
+                processed_payload[
+                    "horizontal_velocity"
+                ] = (
                     decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
@@ -343,7 +369,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         except UnknownMessageException as exception:
             logging.error(f"Could not decode binary payload: {exception}")
-        
+
         ## TODO: Investigate why these are needed
         except MissingMultipartMessageException as exception:
             logging.error(f"Message Payload Composition error: {exception}")
