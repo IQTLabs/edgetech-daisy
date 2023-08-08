@@ -62,10 +62,10 @@ class DAISyPubSub(BaseMQTTPubSub):
     def __init__(
         self: Any,
         hostname: str,
-        serial_port: str,
+        daisy_serial_port: str,
         config_topic: str,
-        bytestring_output_topic: str,
-        json_output_topic: str,
+        ais_bytestring_topic: str,
+        ais_json_topic: str,
         continue_on_exception: bool = False,
         **kwargs: Any,
     ):
@@ -75,23 +75,23 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         Args:
             hostname (str): Name of host
-            serial_port (str): a serial port to subscribe
+            daisy_serial_port (str): a serial port to subscribe
                 to. Specified via docker-compose.
             config_topic (str): MQTT topic for subscribing to config
                 messages
-            bytestring_output_topic (str): MQTT topic on which to
+            ais_bytestring_topic (str): MQTT topic on which to
                 publish AIS bytestring data
-            json_output_topic (str): MQTT topic on which to publish
+            ais_json_topic (str): MQTT topic on which to publish
                 AIS JSON data
             continue_on_exception (bool): Continue on unhandled
                 exceptions if True, raise exception if False (the default)
         """
         super().__init__(**kwargs)
         self.hostname = hostname
-        self.serial_port = serial_port
+        self.daisy_serial_port = daisy_serial_port
         self.config_topic = config_topic
-        self.bytestring_output_topic = bytestring_output_topic
-        self.json_output_topic = json_output_topic
+        self.ais_bytestring_topic = ais_bytestring_topic
+        self.ais_json_topic = ais_json_topic
         self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
@@ -160,12 +160,12 @@ class DAISyPubSub(BaseMQTTPubSub):
         logging.info(f"Processing config message data: {data}")
         config = data["daisy"]
         self.hostname = config.get("hostname", self.hostname)
-        self.serial_port = config.get("serial_port", self.serial_port)
+        self.daisy_serial_port = config.get("daisy_serial_port", self.daisy_serial_port)
         self.config_topic = config.get("config_topic", self.config_topic)
-        self.bytestring_output_topic = config.get(
-            "bytestring_output_topic", self.bytestring_output_topic
+        self.ais_bytestring_topic = config.get(
+            "ais_bytestring_topic", self.ais_bytestring_topic
         )
-        self.json_output_topic = config.get("json_output_topic", self.json_output_topic)
+        self.ais_json_topic = config.get("ais_json_topic", self.ais_json_topic)
         self.continue_on_exception = config.get(
             "continue_on_exception", self.continue_on_exception
         )
@@ -177,10 +177,10 @@ class DAISyPubSub(BaseMQTTPubSub):
         """Logs all paramters that can be set on construction."""
         config = {
             "hostname": self.hostname,
-            "serial_port": self.serial_port,
+            "daisy_serial_port": self.daisy_serial_port,
             "config_topic": self.config_topic,
-            "bytestring_output_topic": self.bytestring_output_topic,
-            "json_output_topic": self.json_output_topic,
+            "ais_bytestring_topic": self.ais_bytestring_topic,
+            "ais_json_topic": self.ais_json_topic,
             "continue_on_exception": self.continue_on_exception,
         }
         logging.info(f"DAISyPubSub configuration:\n{json.dumps(config, indent=4)}")
@@ -191,15 +191,15 @@ class DAISyPubSub(BaseMQTTPubSub):
         """
         # Setup serial connection without blocking
         # dAISy default baud is 38400
-        self.serial = serial.Serial(self.serial_port, timeout=0, baudrate=38400)
-        logging.info(f"Connected to Serial Bus on {self.serial_port}")
+        self.serial = serial.Serial(self.daisy_serial_port, timeout=0, baudrate=38400)
+        logging.info(f"Connected to Serial Bus on {self.daisy_serial_port}")
 
     def _disconnect_serial(self: Any) -> None:
         """Disconnects the serial connection using python's serial
         package.
         """
         self.serial.close()
-        logging.info(f"Disconnected from Serial Bus on {self.serial_port}")
+        logging.info(f"Disconnected from Serial Bus on {self.daisy_serial_port}")
 
     def _send_data(self: Any, data: Dict[str, str]) -> bool:
         """Leverages edgetech-core functionality to publish a JSON
@@ -230,10 +230,10 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Publish the data as JSON to the topic by type
         if data["type"] == "Binary AIS":
-            send_data_topic = self.bytestring_output_topic
+            send_data_topic = self.ais_bytestring_topic
 
         elif data["type"] == "Decoded AIS":
-            send_data_topic = self.json_output_topic
+            send_data_topic = self.ais_json_topic
 
         success = self.publish_to_topic(send_data_topic, out_json)
         if success:
@@ -459,10 +459,10 @@ def make_daisy() -> DAISyPubSub:
     return DAISyPubSub(
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
-        serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
+        daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
         config_topic=os.getenv("CONFIG_TOPIC", ""),
-        bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
-        json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
+        ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
+        ais_json_topic=os.environ.get("AIS_JSON_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
