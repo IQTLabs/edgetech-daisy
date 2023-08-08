@@ -63,7 +63,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self: Any,
         hostname: str,
         daisy_serial_port: str,
-        config_topic: str,
+        config_json_topic: str,
         ais_bytestring_topic: str,
         ais_json_topic: str,
         continue_on_exception: bool = False,
@@ -77,7 +77,7 @@ class DAISyPubSub(BaseMQTTPubSub):
             hostname (str): Name of host
             daisy_serial_port (str): a serial port to subscribe
                 to. Specified via docker-compose.
-            config_topic (str): MQTT topic for subscribing to config
+            config_json_topic (str): MQTT topic for subscribing to config
                 messages
             ais_bytestring_topic (str): MQTT topic on which to
                 publish AIS bytestring data
@@ -89,7 +89,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         super().__init__(**kwargs)
         self.hostname = hostname
         self.daisy_serial_port = daisy_serial_port
-        self.config_topic = config_topic
+        self.config_json_topic = config_json_topic
         self.ais_bytestring_topic = ais_bytestring_topic
         self.ais_json_topic = ais_json_topic
         self.continue_on_exception = continue_on_exception
@@ -161,7 +161,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         config = data["daisy"]
         self.hostname = config.get("hostname", self.hostname)
         self.daisy_serial_port = config.get("daisy_serial_port", self.daisy_serial_port)
-        self.config_topic = config.get("config_topic", self.config_topic)
+        self.config_json_topic = config.get("config_json_topic", self.config_json_topic)
         self.ais_bytestring_topic = config.get(
             "ais_bytestring_topic", self.ais_bytestring_topic
         )
@@ -178,7 +178,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         config = {
             "hostname": self.hostname,
             "daisy_serial_port": self.daisy_serial_port,
-            "config_topic": self.config_topic,
+            "config_json_topic": self.config_json_topic,
             "ais_bytestring_topic": self.ais_bytestring_topic,
             "ais_json_topic": self.ais_json_topic,
             "continue_on_exception": self.continue_on_exception,
@@ -385,7 +385,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         )
 
         # Subscribe to required topics
-        self.add_subscribe_topic(self.config_topic, self._config_callback)
+        self.add_subscribe_topic(self.config_json_topic, self._config_callback)
 
         logging.info("System initialized and running")
         payload_beginning = ""
@@ -460,7 +460,7 @@ def make_daisy() -> DAISyPubSub:
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
         daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
-        config_topic=os.getenv("CONFIG_TOPIC", ""),
+        config_json_topic=os.getenv("CONFIG_JSON_TOPIC", ""),
         ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
         ais_json_topic=os.environ.get("AIS_JSON_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
