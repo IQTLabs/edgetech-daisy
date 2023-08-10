@@ -368,9 +368,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                     raise
 
 
-def make_daisy() -> DAISyPubSub:
-    """Instantiates DAISyPubSub."""
-    return DAISyPubSub(
+if __name__ == "__main__":
+    # Instantiate DAISyPubSub and execute
+    daisy = DAISyPubSub(
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
@@ -380,9 +380,4 @@ def make_daisy() -> DAISyPubSub:
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
     )
-
-
-if __name__ == "__main__":
-    # Instantiate DAISyPubSub and execute
-    diasy = make_daisy()
-    diasy.main()
+    daisy.main()
