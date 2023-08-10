@@ -2,15 +2,17 @@
 BaseMQTTPubSub.  The DAISyPubSub reads data from a specified serial
 port and publishes binary and decoded payloads to the MQTT broker.
 """
-import coloredlogs
+import ast
 from datetime import datetime
 import json
 import logging
 import os
 import sys
 from time import sleep
-from typing import Any, Dict
+import traceback
+from typing import Any, Dict, Union
 
+import paho.mqtt.client as mqtt
 from pyais import decode
 from pyais.exceptions import UnknownMessageException, MissingMultipartMessageException
 from pyais.messages import (
@@ -20,30 +22,10 @@ from pyais.messages import (
     MessageType4,
     MessageType18,
 )
-import serial
 import schedule
+import serial
 
 from base_mqtt_pub_sub import BaseMQTTPubSub
-
-STYLES = {
-    "critical": {"bold": True, "color": "red"},
-    "debug": {"color": "green"},
-    "error": {"color": "red"},
-    "info": {"color": "white"},
-    "notice": {"color": "magenta"},
-    "spam": {"color": "green", "faint": True},
-    "success": {"bold": True, "color": "green"},
-    "verbose": {"color": "blue"},
-    "warning": {"color": "yellow"},
-}
-coloredlogs.install(
-    level=logging.INFO,
-    fmt="%(asctime)s.%(msecs)03d \033[0;90m%(levelname)-8s "
-    ""
-    "\033[0;36m%(filename)-18s%(lineno)3d\033[00m "
-    "%(message)s",
-    level_styles=STYLES,
-)
 
 
 class DAISyPubSub(BaseMQTTPubSub):
@@ -62,6 +44,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         serial_port: str,
         bytestring_output_topic: str,
         json_output_topic: str,
+        continue_on_exception: bool = False,
         **kwargs: Any,
     ):
         """The DAISyPubSub constructor takes a serial port address and
@@ -76,33 +59,48 @@ class DAISyPubSub(BaseMQTTPubSub):
                 publish AIS bytestring data
             json_output_topic (str): MQTT topic on which to publish
                 AIS JSON data
+            continue_on_exception (bool): Continue on unhandled
+                exceptions if True, raise exception if False (the default)
         """
         super().__init__(**kwargs)
-        # Convert contructor parameters to class variables
         self.hostname = hostname
         self.serial_port = serial_port
         self.bytestring_output_topic = bytestring_output_topic
         self.json_output_topic = json_output_topic
+        self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
         self.connect_client()
         sleep(1)
-
-        # Publish a message after successful connection to the MQTT broker
         self.publish_registration("dAISy Sender Registration")
 
         # Setup the serial connection
         self._connect_serial()
 
-        # Log configuration parameters
-        logging.info(
-            f"""DAISyPubSub initialized with parameters:
-    hostname = {hostname}
-    serial_port = {serial_port}
-    bytestring_output_topic = {bytestring_output_topic}
-    json_output_topic = {json_output_topic}
-            """
-        )
+    def decode_payload(
+        self, msg: Union[mqtt.MQTTMessage, str], data_payload_type: str
+    ) -> Dict[Any, Any]:
+        """
+        Decode the payload carried by a message.
+
+        Parameters
+        ----------
+        payload: mqtt.MQTTMessage
+            The MQTT message
+        data_payload_type: str
+            The data payload type
+
+        Returns
+        -------
+        data : Dict[Any, Any]
+            The data payload of the message payload
+        """
+        if type(msg) == mqtt.MQTTMessage:
+            payload = msg.payload.decode()
+        else:
+            payload = msg
+        data_payload = json.loads(payload)[data_payload_type]
+        return json.loads(data_payload)
 
     def _connect_serial(self: Any) -> None:
         """Sets up a serial connection using python's serial package
@@ -195,14 +193,16 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-class-a-reports
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = (
-                    decoded_payload.lat
-                )  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = (
-                    decoded_payload.lon
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "latitude"
+                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "longitude"
+                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
-                processed_payload["horizontal_velocity"] = (
+                processed_payload[
+                    "horizontal_velocity"
+                ] = (
                     decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
@@ -252,14 +252,16 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-class-b-reports
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = (
-                    decoded_payload.lat
-                )  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = (
-                    decoded_payload.lon
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "latitude"
+                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "longitude"
+                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
                 processed_payload["altitude"] = 0
-                processed_payload["horizontal_velocity"] = (
+                processed_payload[
+                    "horizontal_velocity"
+                ] = (
                     decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
@@ -284,7 +286,7 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         except UnknownMessageException as exception:
             logging.error(f"Could not decode binary payload: {exception}")
-        
+
         ## TODO: Investigate why these are needed
         except MissingMultipartMessageException as exception:
             logging.error(f"Message Payload Composition error: {exception}")
@@ -294,72 +296,57 @@ class DAISyPubSub(BaseMQTTPubSub):
         connection alive, publish serial data to the MQTT broker, and
         keep the main thread alive.
         """
-        # Schedule the heartbeat
+        # Schedule module heartbeat
         schedule.every(10).seconds.do(
             self.publish_heartbeat, payload="dAISy Sender Heartbeat"
         )
 
+        logging.info("System initialized and running")
         payload_beginning = ""
         while True:
             try:
                 # Read and handle waiting serial bytes
                 if self.serial.in_waiting:
-                    try:
-                        in_waiting = self.serial.in_waiting
-                        logging.debug(
-                            f"Attempting to read {in_waiting} bytes in waiting"
-                        )
-                        serial_bytes = self.serial.read(in_waiting)
-                        logging.debug(f"Read {in_waiting} bytes in waiting")
-
-                    except Exception as exception:
-                        logging.warning(
-                            f"Could not read serial bytes in waiting: {exception}"
-                        )
-                        continue
+                    in_waiting = self.serial.in_waiting
+                    logging.debug(f"Attempting to read {in_waiting} bytes in waiting")
+                    serial_bytes = self.serial.read(in_waiting)
+                    logging.debug(f"Read {in_waiting} bytes in waiting")
 
                     # Process required payloads when complete
-                    try:
-                        serial_payloads = serial_bytes.decode().split("\n")
-                        for serial_payload in serial_payloads:
+                    serial_payloads = serial_bytes.decode().split("\n")
+                    for serial_payload in serial_payloads:
+                        logging.debug(f"Processing serial payload: {serial_payload}")
+                        if "AIVDM" in serial_payload and "\r" in serial_payload:
+                            # Payload is required and complete
+                            logging.debug("Payload is required and complete")
+                            self.process_serial_payload(serial_payload)
+
+                        elif "AIVDM" not in serial_payload:
+                            # Payload is not required, or not
+                            # complete: first AIVDM payload ending
+                            # only
+                            logging.debug("Payload is not required, or not complete")
+                            continue
+
+                        elif "AIVDM" in serial_payload:
+                            # Payload is required, but not complete: beginning only
                             logging.debug(
-                                f"Processing serial payload: {serial_payload}"
+                                "Payload is required, but not complete: beginning only"
                             )
-                            if "AIVDM" in serial_payload and "\r" in serial_payload:
-                                # Payload is required and complete
-                                logging.debug("Payload is required and complete")
-                                self.process_serial_payload(serial_payload)
+                            payload_beginng = serial_payload
 
-                            elif "sync" in serial_payload or "error" in serial_payload:
-                                # Payload is not required
-                                logging.debug("Payload is not required")
-                                continue
-
-                            elif "AIVDM" in serial_payload:
-                                # Payload is required, but not complete: beginning only
-                                logging.debug(
-                                    "Payload is required, but not complete: beginning only"
-                                )
-                                payload_beginng = serial_payload
-
-                            elif payload_beginning != "":
-                                # Payload is required, but not complete: ending only
-                                logging.debug(
-                                    "Payload is required, but not complete: ending only"
-                                )
-                                logging.debug(
-                                    f"Complete payload: {payload_beginning + serial_payload}"
-                                )
-                                self.process_serial_payload(
-                                    payload_beginning + serial_payload
-                                )
-                                payload_beginning = ""
-
-                    except Exception as exception:
-                        logging.warning(
-                            f"Could not process serial payloads: {serial_payloads}: {exception}"
-                        )
-                        continue
+                        elif payload_beginning != "":
+                            # Payload is required, but not complete: ending only
+                            logging.debug(
+                                "Payload is required, but not complete: ending only"
+                            )
+                            logging.debug(
+                                f"Complete payload: {payload_beginning + serial_payload}"
+                            )
+                            self.process_serial_payload(
+                                payload_beginning + serial_payload
+                            )
+                            payload_beginning = ""
 
                 # Flush any scheduled processes that are waiting
                 schedule.run_pending()
@@ -369,17 +356,33 @@ class DAISyPubSub(BaseMQTTPubSub):
 
             except KeyboardInterrupt as exception:
                 # If keyboard interrupt, fail gracefully
+                logging.warning("Received keyboard interrupt: exiting gracefully")
                 self._disconnect_serial()
-                logging.error(exception)
                 sys.exit()
 
+            except Exception as exception:
+                # Optionally continue on exception
+                if self.continue_on_exception:
+                    traceback.print_exc()
+                else:
+                    raise
 
-if __name__ == "__main__":
-    sender = DAISyPubSub(
+
+def make_daisy() -> DAISyPubSub:
+    """Instantiates DAISyPubSub."""
+    return DAISyPubSub(
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
         json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
+        continue_on_exception=ast.literal_eval(
+            os.environ.get("CONTINUE_ON_EXCEPTION", "False")
+        ),
     )
-    sender.main()
+
+
+if __name__ == "__main__":
+    # Instantiate DAISyPubSub and execute
+    diasy = make_daisy()
+    diasy.main()
