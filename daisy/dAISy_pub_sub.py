@@ -39,11 +39,11 @@ class DAISyPubSub(BaseMQTTPubSub):
     """
 
     def __init__(
-        self: Any,
+        self,
         hostname: str,
-        serial_port: str,
-        bytestring_output_topic: str,
-        json_output_topic: str,
+        daisy_serial_port: str,
+        ais_bytestring_topic: str,
+        ais_json_topic: str,
         continue_on_exception: bool = False,
         **kwargs: Any,
     ):
@@ -53,20 +53,20 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         Args:
             hostname (str): Name of host
-            serial_port (str): a serial port to subscribe
+            daisy_serial_port (str): a serial port to subscribe
                 to. Specified via docker-compose.
-            bytestring_output_topic (str): MQTT topic on which to
+            ais_bytestring_topic (str): MQTT topic on which to
                 publish AIS bytestring data
-            json_output_topic (str): MQTT topic on which to publish
+            ais_json_topic (str): MQTT topic on which to publish
                 AIS JSON data
             continue_on_exception (bool): Continue on unhandled
                 exceptions if True, raise exception if False (the default)
         """
         super().__init__(**kwargs)
         self.hostname = hostname
-        self.serial_port = serial_port
-        self.bytestring_output_topic = bytestring_output_topic
-        self.json_output_topic = json_output_topic
+        self.daisy_serial_port = daisy_serial_port
+        self.ais_bytestring_topic = ais_bytestring_topic
+        self.ais_json_topic = ais_json_topic
         self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
@@ -76,6 +76,16 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Setup the serial connection
         self._connect_serial()
+
+        # Log configuration parameters
+        logging.info(
+            f"""DAISyPubSub initialized with parameters:
+    daisy_serial_port = {daisy_serial_port}
+    ais_bytestring_topic = {ais_bytestring_topic}
+    ais_json_topic = {ais_json_topic}
+    continue_on_exception = {continue_on_exception}
+            """
+        )
 
     def decode_payload(
         self, msg: Union[mqtt.MQTTMessage, str], data_payload_type: str
@@ -102,23 +112,23 @@ class DAISyPubSub(BaseMQTTPubSub):
         data_payload = json.loads(payload)[data_payload_type]
         return json.loads(data_payload)
 
-    def _connect_serial(self: Any) -> None:
+    def _connect_serial(self) -> None:
         """Sets up a serial connection using python's serial package
         to the port specified in the constructor.
         """
         # Setup serial connection without blocking
         # dAISy default baud is 38400
-        self.serial = serial.Serial(self.serial_port, timeout=0, baudrate=38400)
-        logging.info(f"Connected to Serial Bus on {self.serial_port}")
+        self.serial = serial.Serial(self.daisy_serial_port, timeout=0, baudrate=38400)
+        logging.info(f"Connected to Serial Bus on {self.daisy_serial_port}")
 
-    def _disconnect_serial(self: Any) -> None:
+    def _disconnect_serial(self) -> None:
         """Disconnects the serial connection using python's serial
         package.
         """
         self.serial.close()
-        logging.info(f"Disconnected from Serial Bus on {self.serial_port}")
+        logging.info(f"Disconnected from Serial Bus on {self.daisy_serial_port}")
 
-    def _send_data(self: Any, data: Dict[str, str]) -> bool:
+    def _send_data(self, data: Dict[str, str]) -> bool:
         """Leverages edgetech-core functionality to publish a JSON
         payload to the MQTT broker on the topic specified in the class
         constructor.
@@ -147,10 +157,10 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Publish the data as JSON to the topic by type
         if data["type"] == "Binary AIS":
-            send_data_topic = self.bytestring_output_topic
+            send_data_topic = self.ais_bytestring_topic
 
         elif data["type"] == "Decoded AIS":
-            send_data_topic = self.json_output_topic
+            send_data_topic = self.ais_json_topic
 
         success = self.publish_to_topic(send_data_topic, out_json)
         if success:
@@ -193,17 +203,15 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-class-a-reports
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload[
-                    "latitude"
-                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload[
-                    "longitude"
-                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["latitude"] = (
+                    decoded_payload.lat
+                )  # [deg]
+                processed_payload["longitude"] = (
+                    decoded_payload.lon
+                )  # [deg]
                 processed_payload["altitude"] = 0
-                processed_payload[
-                    "horizontal_velocity"
-                ] = (
-                    decoded_payload.speed
+                processed_payload["horizontal_velocity"] = (
+                    decoded_payload.speed * 1852.0 / 3600
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
                 # [deg]
@@ -224,9 +232,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = decoded_payload.lat
-                # [min / 10000] * 10000 / [60 min / deg]
+                # [deg]
                 processed_payload["longitude"] = decoded_payload.lon
-                # [min / 10000] * 10000 / [60 min / deg]
+                # [deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = 0
                 processed_payload["course"] = 0
@@ -252,17 +260,15 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-class-b-reports
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload[
-                    "latitude"
-                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload[
-                    "longitude"
-                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["latitude"] = (
+                    decoded_payload.lat
+                )  # [deg]
+                processed_payload["longitude"] = (
+                    decoded_payload.lon
+                )  # [deg]
                 processed_payload["altitude"] = 0
-                processed_payload[
-                    "horizontal_velocity"
-                ] = (
-                    decoded_payload.speed
+                processed_payload["horizontal_velocity"] = (
+                    decoded_payload.speed * 1852.0 / 3600
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
                 processed_payload["vertical_velocity"] = 0
@@ -291,7 +297,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         except MissingMultipartMessageException as exception:
             logging.error(f"Message Payload Composition error: {exception}")
 
-    def main(self: Any) -> None:
+    def main(self) -> None:
         """Main loop to setup the heartbeat which keeps the TCP/IP
         connection alive, publish serial data to the MQTT broker, and
         keep the main thread alive.
@@ -373,9 +379,9 @@ if __name__ == "__main__":
     daisy = DAISyPubSub(
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
-        serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
-        bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
-        json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
+        daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
+        ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
+        ais_json_topic=os.environ.get("AIS_JSON_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
