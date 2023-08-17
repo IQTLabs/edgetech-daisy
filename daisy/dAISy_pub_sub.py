@@ -204,11 +204,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = (
-                    decoded_payload.lat * 10000 / 60
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                    decoded_payload.lat
+                )  # [deg]
                 processed_payload["longitude"] = (
-                    decoded_payload.lon * 10000 / 60
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                    decoded_payload.lon
+                )  # [deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = (
                     decoded_payload.speed * 1852.0 / 3600
@@ -231,10 +231,10 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = decoded_payload.lat * 10000 / 60
-                # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = decoded_payload.lon * 10000 / 60
-                # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["latitude"] = decoded_payload.lat
+                # [deg]
+                processed_payload["longitude"] = decoded_payload.lon
+                # [deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = 0
                 processed_payload["course"] = 0
@@ -261,11 +261,11 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
                 processed_payload["latitude"] = (
-                    decoded_payload.lat * 10000 / 60
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                    decoded_payload.lat
+                )  # [deg]
                 processed_payload["longitude"] = (
-                    decoded_payload.lon * 10000 / 60
-                )  # [min / 10000] * 10000 / [60 min / deg]
+                    decoded_payload.lon
+                )  # [deg]
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = (
                     decoded_payload.speed * 1852.0 / 3600
