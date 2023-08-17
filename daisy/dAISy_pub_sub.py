@@ -39,7 +39,7 @@ class DAISyPubSub(BaseMQTTPubSub):
     """
 
     def __init__(
-        self: Any,
+        self,
         hostname: str,
         daisy_serial_port: str,
         ais_bytestring_topic: str,
@@ -112,7 +112,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         data_payload = json.loads(payload)[data_payload_type]
         return json.loads(data_payload)
 
-    def _connect_serial(self: Any) -> None:
+    def _connect_serial(self) -> None:
         """Sets up a serial connection using python's serial package
         to the port specified in the constructor.
         """
@@ -121,14 +121,14 @@ class DAISyPubSub(BaseMQTTPubSub):
         self.serial = serial.Serial(self.daisy_serial_port, timeout=0, baudrate=38400)
         logging.info(f"Connected to Serial Bus on {self.daisy_serial_port}")
 
-    def _disconnect_serial(self: Any) -> None:
+    def _disconnect_serial(self) -> None:
         """Disconnects the serial connection using python's serial
         package.
         """
         self.serial.close()
         logging.info(f"Disconnected from Serial Bus on {self.daisy_serial_port}")
 
-    def _send_data(self: Any, data: Dict[str, str]) -> bool:
+    def _send_data(self, data: Dict[str, str]) -> bool:
         """Leverages edgetech-core functionality to publish a JSON
         payload to the MQTT broker on the topic specified in the class
         constructor.
@@ -297,7 +297,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         except MissingMultipartMessageException as exception:
             logging.error(f"Message Payload Composition error: {exception}")
 
-    def main(self: Any) -> None:
+    def main(self) -> None:
         """Main loop to setup the heartbeat which keeps the TCP/IP
         connection alive, publish serial data to the MQTT broker, and
         keep the main thread alive.
