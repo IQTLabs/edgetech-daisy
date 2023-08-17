@@ -77,6 +77,16 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Setup the serial connection
         self._connect_serial()
 
+        # Log configuration parameters
+        logging.info(
+            f"""DAISyPubSub initialized with parameters:
+    daisy_serial_port = {daisy_serial_port}
+    ais_bytestring_topic = {ais_bytestring_topic}
+    ais_json_topic = {ais_json_topic}
+    continue_on_exception = {continue_on_exception}
+            """
+        )
+
     def decode_payload(
         self, msg: Union[mqtt.MQTTMessage, str], data_payload_type: str
     ) -> Dict[Any, Any]:
