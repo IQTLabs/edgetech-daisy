@@ -43,7 +43,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         hostname: str,
         serial_port: str,
         bytestring_output_topic: str,
-        json_output_topic: str,
+        # json_output_topic: str,
         continue_on_exception: bool = False,
         **kwargs: Any,
     ):
@@ -66,7 +66,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self.hostname = hostname
         self.serial_port = serial_port
         self.bytestring_output_topic = bytestring_output_topic
-        self.json_output_topic = json_output_topic
+        # self.json_output_topic = json_output_topic
         self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
@@ -146,13 +146,14 @@ class DAISyPubSub(BaseMQTTPubSub):
         )
 
         # Publish the data as JSON to the topic by type
-        if data["type"] == "Binary AIS":
-            send_data_topic = self.bytestring_output_topic
-
-        elif data["type"] == "Decoded AIS":
-            send_data_topic = self.json_output_topic
-
+        # if data["type"] == "Binary AIS":
+        send_data_topic = self.bytestring_output_topic
         success = self.publish_to_topic(send_data_topic, out_json)
+
+        # elif data["type"] == "Decoded AIS":
+        #     send_data_topic = self.json_output_topic
+
+        
         if success:
             logging.info(f"Successfully sent data on channel {send_data_topic}: {data}")
         else:
@@ -223,27 +224,19 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = decoded_payload.lat
-                # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = decoded_payload.lon
-                # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["latitude"] = decoded_payload.lat # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload["longitude"] = decoded_payload.lon # [min / 10000] * 10000 / [60 min / deg]
+                # Optional values
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = 0
                 processed_payload["course"] = 0
-                processed_payload["vertical_velocity"] = 0
-                # Optional values
-                processed_payload["year"] = decoded_payload.year
-                # of UTC
-                processed_payload["month"] = decoded_payload.month
-                # of UTC
-                processed_payload["day"] = decoded_payload.day
-                # of UTC
-                processed_payload["hour"] = decoded_payload.hour
-                # of UTC
-                processed_payload["minute"] = decoded_payload.minute
-                # of UTC
-                processed_payload["second"] = decoded_payload.second
-                # of UTC
+                processed_payload["vertical_velocity"] = 0 
+                processed_payload["year"] = decoded_payload.year # of UTC
+                processed_payload["month"] = decoded_payload.month # of UTC
+                processed_payload["day"] = decoded_payload.day # of UTC
+                processed_payload["hour"] = decoded_payload.hour # of UTC
+                processed_payload["minute"] = decoded_payload.minute # of UTC
+                processed_payload["second"] = decoded_payload.second # of UTC
                 processed_payload["accuracy"] = decoded_payload.accuracy
 
             elif message_type == MessageType18:
@@ -265,10 +258,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                     decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
-                processed_payload["vertical_velocity"] = 0
-                # Optional values
-                processed_payload["second"] = decoded_payload.second
-                # of UTC
+                processed_payload["vertical_velocity"] = 0 # Optional values
+                processed_payload["second"] = decoded_payload.second # of UTC
                 processed_payload["accuracy"] = decoded_payload.accuracy
                 processed_payload["heading"] = decoded_payload.heading
 
@@ -277,12 +268,12 @@ class DAISyPubSub(BaseMQTTPubSub):
                 return
 
             # Send the processed payload to MQTT
-            self._send_data(
-                {
-                    "type": "Decoded AIS",
-                    "payload": json.dumps(processed_payload),
-                }
-            )
+            # self._send_data(
+            #     {
+            #         "type": "Decoded AIS",
+            #         "payload": json.dumps(processed_payload),
+            #     }
+            # )
 
         except UnknownMessageException as exception:
             logging.error(f"Could not decode binary payload: {exception}")
@@ -375,7 +366,7 @@ if __name__ == "__main__":
         hostname=os.environ.get("HOSTNAME", ""),
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
-        json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
+        # json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
