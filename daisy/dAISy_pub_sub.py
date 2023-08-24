@@ -153,7 +153,6 @@ class DAISyPubSub(BaseMQTTPubSub):
         # elif data["type"] == "Decoded AIS":
         #     send_data_topic = self.json_output_topic
 
-        
         if success:
             logging.info(f"Successfully sent data on channel {send_data_topic}: {data}")
         else:
@@ -224,19 +223,23 @@ class DAISyPubSub(BaseMQTTPubSub):
                 #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
                 #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
                 processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = decoded_payload.lat # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = decoded_payload.lon # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "latitude"
+                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
+                processed_payload[
+                    "longitude"
+                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
                 # Optional values
                 processed_payload["altitude"] = 0
                 processed_payload["horizontal_velocity"] = 0
                 processed_payload["course"] = 0
-                processed_payload["vertical_velocity"] = 0 
-                processed_payload["year"] = decoded_payload.year # of UTC
-                processed_payload["month"] = decoded_payload.month # of UTC
-                processed_payload["day"] = decoded_payload.day # of UTC
-                processed_payload["hour"] = decoded_payload.hour # of UTC
-                processed_payload["minute"] = decoded_payload.minute # of UTC
-                processed_payload["second"] = decoded_payload.second # of UTC
+                processed_payload["vertical_velocity"] = 0
+                processed_payload["year"] = decoded_payload.year  # of UTC
+                processed_payload["month"] = decoded_payload.month  # of UTC
+                processed_payload["day"] = decoded_payload.day  # of UTC
+                processed_payload["hour"] = decoded_payload.hour  # of UTC
+                processed_payload["minute"] = decoded_payload.minute  # of UTC
+                processed_payload["second"] = decoded_payload.second  # of UTC
                 processed_payload["accuracy"] = decoded_payload.accuracy
 
             elif message_type == MessageType18:
@@ -258,8 +261,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                     decoded_payload.speed
                 )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
                 processed_payload["course"] = decoded_payload.course
-                processed_payload["vertical_velocity"] = 0 # Optional values
-                processed_payload["second"] = decoded_payload.second # of UTC
+                processed_payload["vertical_velocity"] = 0  # Optional values
+                processed_payload["second"] = decoded_payload.second  # of UTC
                 processed_payload["accuracy"] = decoded_payload.accuracy
                 processed_payload["heading"] = decoded_payload.heading
 
