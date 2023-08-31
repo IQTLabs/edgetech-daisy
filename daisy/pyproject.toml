@@ -6,10 +6,8 @@ authors = ["Ari <achadda@iqt.org>", "Rob <rcaudill@iqt.org>", "Logan <lkunka@iqt
 license = "Apache 2.0"
 
 [tool.poetry.dependencies]
-python = "^3.11"
-coloredlogs = "^15.0.1"
+python = "^3.10"
 paho-mqtt = "^1.5.0"
-pyais = "^2.5.4"
 pyserial = "^3.5"
 schedule = "^1.2.0"
 
