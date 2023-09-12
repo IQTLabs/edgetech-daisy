@@ -12,7 +12,6 @@ from time import sleep
 import traceback
 from typing import Any, Dict, Union
 
-import coloredlogs
 import paho.mqtt.client as mqtt
 from pyais import decode
 from pyais.exceptions import UnknownMessageException, MissingMultipartMessageException
@@ -27,26 +26,6 @@ import schedule
 import serial
 
 from base_mqtt_pub_sub import BaseMQTTPubSub
-
-STYLES = {
-    "critical": {"bold": True, "color": "red"},
-    "debug": {"color": "green"},
-    "error": {"color": "red"},
-    "info": {"color": "white"},
-    "notice": {"color": "magenta"},
-    "spam": {"color": "green", "faint": True},
-    "success": {"bold": True, "color": "green"},
-    "verbose": {"color": "blue"},
-    "warning": {"color": "yellow"},
-}
-coloredlogs.install(
-    level=os.environ.get("LOG_LEVEL", "INFO"),
-    fmt="%(asctime)s.%(msecs)03d \033[0;90m%(levelname)-8s "
-    ""
-    "\033[0;36m%(filename)-18s%(lineno)3d\033[00m "
-    "%(message)s",
-    level_styles=STYLES,
-)
 
 
 class DAISyPubSub(BaseMQTTPubSub):
@@ -102,9 +81,6 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Setup the serial connection
         self._connect_serial()
 
-        # Log configuration parameters
-        self._log_config()
-
     def decode_payload(
         self, msg: Union[mqtt.MQTTMessage, str], data_payload_type: str
     ) -> Dict[Any, Any]:
@@ -129,61 +105,6 @@ class DAISyPubSub(BaseMQTTPubSub):
             payload = msg
         data_payload = json.loads(payload)[data_payload_type]
         return json.loads(data_payload)
-
-    def _config_callback(
-        self,
-        _client: Union[mqtt.Client, None],
-        _userdata: Union[Dict[Any, Any], None],
-        msg: Union[mqtt.MQTTMessage, Dict[Any, Any]],
-    ) -> None:
-        """
-        Process config message.
-
-        Parameters
-        ----------
-        _client: Union[mqtt.Client, None]
-            MQTT client
-        _userdata: Union[Dict[Any, Any], None]
-            Any required user data
-        msg: Union[mqtt.MQTTMessage, Dict[Any, Any]]
-            An MQTT message, or dictionary
-
-        Returns
-        -------
-        None
-        """
-        # Assign data attributes allowed to change during operation,
-        # ignoring config message data without a "daisy" key
-        data = self.decode_payload(msg, "Configuration")
-        if "daisy" not in data:
-            return
-        logging.info(f"Processing config message data: {data}")
-        config = data["daisy"]
-        self.hostname = config.get("hostname", self.hostname)
-        self.daisy_serial_port = config.get("daisy_serial_port", self.daisy_serial_port)
-        self.config_json_topic = config.get("config_json_topic", self.config_json_topic)
-        self.ais_bytestring_topic = config.get(
-            "ais_bytestring_topic", self.ais_bytestring_topic
-        )
-        self.ais_json_topic = config.get("ais_json_topic", self.ais_json_topic)
-        self.continue_on_exception = config.get(
-            "continue_on_exception", self.continue_on_exception
-        )
-
-        # Log configuration parameters
-        self._log_config()
-
-    def _log_config(self: Any) -> None:
-        """Logs all paramters that can be set on construction."""
-        config = {
-            "hostname": self.hostname,
-            "daisy_serial_port": self.daisy_serial_port,
-            "config_json_topic": self.config_json_topic,
-            "ais_bytestring_topic": self.ais_bytestring_topic,
-            "ais_json_topic": self.ais_json_topic,
-            "continue_on_exception": self.continue_on_exception,
-        }
-        logging.info(f"DAISyPubSub configuration:\n{json.dumps(config, indent=4)}")
 
     def _connect_serial(self: Any) -> None:
         """Sets up a serial connection using python's serial package
@@ -384,9 +305,6 @@ class DAISyPubSub(BaseMQTTPubSub):
             self.publish_heartbeat, payload="dAISy Sender Heartbeat"
         )
 
-        # Subscribe to required topics
-        self.add_subscribe_topic(self.config_json_topic, self._config_callback)
-
         logging.info("System initialized and running")
         payload_beginning = ""
         while True:
@@ -454,9 +372,9 @@ class DAISyPubSub(BaseMQTTPubSub):
                     raise
 
 
-def make_daisy() -> DAISyPubSub:
-    """Instantiates DAISyPubSub."""
-    return DAISyPubSub(
+if __name__ == "__main__":
+    # Instantiate DAISyPubSub and execute
+    daisy = DAISyPubSub(
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
         daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
@@ -467,9 +385,4 @@ def make_daisy() -> DAISyPubSub:
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
     )
-
-
-if __name__ == "__main__":
-    # Instantiate DAISyPubSub and execute
-    diasy = make_daisy()
-    diasy.main()
+    daisy.main()
