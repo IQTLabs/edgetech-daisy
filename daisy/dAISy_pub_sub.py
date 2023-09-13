@@ -382,8 +382,8 @@ class DAISyPubSub(BaseMQTTPubSub):
 if __name__ == "__main__":
     # Instantiate DAISyPubSub and execute
     daisy = DAISyPubSub(
-        mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
+        mqtt_ip=os.environ.get("MQTT_IP", ""),
         daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
         ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
         ais_json_topic=os.environ.get("AIS_JSON_TOPIC", ""),
