@@ -42,7 +42,6 @@ class DAISyPubSub(BaseMQTTPubSub):
         self: Any,
         hostname: str,
         daisy_serial_port: str,
-        config_json_topic: str,
         ais_bytestring_topic: str,
         ais_json_topic: str,
         continue_on_exception: bool = False,
@@ -56,8 +55,6 @@ class DAISyPubSub(BaseMQTTPubSub):
             hostname (str): Name of host
             daisy_serial_port (str): a serial port to subscribe
                 to. Specified via docker-compose.
-            config_json_topic (str): MQTT topic for subscribing to config
-                messages
             ais_bytestring_topic (str): MQTT topic on which to
                 publish AIS bytestring data
             ais_json_topic (str): MQTT topic on which to publish
@@ -68,7 +65,6 @@ class DAISyPubSub(BaseMQTTPubSub):
         super().__init__(**kwargs)
         self.hostname = hostname
         self.daisy_serial_port = daisy_serial_port
-        self.config_json_topic = config_json_topic
         self.ais_bytestring_topic = ais_bytestring_topic
         self.ais_json_topic = ais_json_topic
         self.continue_on_exception = continue_on_exception
@@ -80,6 +76,17 @@ class DAISyPubSub(BaseMQTTPubSub):
 
         # Setup the serial connection
         self._connect_serial()
+
+        # Log configuration parameters
+        logging.info(
+            f"""DAISyPubSub initialized with parameters:
+    hostname = {hostname}
+    daisy_serial_port = {daisy_serial_port}
+    ais_bytestring_topic = {ais_bytestring_topic}
+    ais_json_topic = {ais_json_topic}
+    continue_on_exception = {continue_on_exception}
+            """
+        )
 
     def decode_payload(
         self, msg: Union[mqtt.MQTTMessage, str], data_payload_type: str
@@ -378,7 +385,6 @@ if __name__ == "__main__":
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         hostname=os.environ.get("HOSTNAME", ""),
         daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
-        config_json_topic=os.getenv("CONFIG_JSON_TOPIC", ""),
         ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
         ais_json_topic=os.environ.get("AIS_JSON_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
