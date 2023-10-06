@@ -44,6 +44,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         daisy_serial_port: str,
         ais_bytestring_topic: str,
         ais_json_topic: str,
+        log_level: str = "INFO",
         continue_on_exception: bool = False,
         **kwargs: Any,
     ):
@@ -59,6 +60,8 @@ class DAISyPubSub(BaseMQTTPubSub):
                 publish AIS bytestring data
             ais_json_topic (str): MQTT topic on which to publish
                 AIS JSON data
+            log_level (str): One of 'NOTSET', 'DEBUG', 'INFO', 'WARN',
+                'WARNING', 'ERROR', 'FATAL', 'CRITICAL'
             continue_on_exception (bool): Continue on unhandled
                 exceptions if True, raise exception if False (the default)
         """
@@ -67,6 +70,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self.daisy_serial_port = daisy_serial_port
         self.ais_bytestring_topic = ais_bytestring_topic
         self.ais_json_topic = ais_json_topic
+        self.log_level = log_level
         self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
@@ -84,6 +88,7 @@ class DAISyPubSub(BaseMQTTPubSub):
     daisy_serial_port = {daisy_serial_port}
     ais_bytestring_topic = {ais_bytestring_topic}
     ais_json_topic = {ais_json_topic}
+    log_level = {log_level}
     continue_on_exception = {continue_on_exception}
             """
         )
@@ -387,6 +392,7 @@ if __name__ == "__main__":
         daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
         ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
         ais_json_topic=os.environ.get("AIS_JSON_TOPIC", ""),
+        log_level=os.environ.get("LOG_LEVEL"),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
