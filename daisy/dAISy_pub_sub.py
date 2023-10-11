@@ -13,15 +13,6 @@ import traceback
 from typing import Any, Dict, Union
 
 import paho.mqtt.client as mqtt
-from pyais import decode
-from pyais.exceptions import UnknownMessageException, MissingMultipartMessageException
-from pyais.messages import (
-    MessageType1,
-    MessageType2,
-    MessageType3,
-    MessageType4,
-    MessageType18,
-)
 import schedule
 import serial
 
@@ -43,7 +34,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         hostname: str,
         serial_port: str,
         bytestring_output_topic: str,
-        json_output_topic: str,
+        # json_output_topic: str,
         continue_on_exception: bool = False,
         **kwargs: Any,
     ):
@@ -66,7 +57,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         self.hostname = hostname
         self.serial_port = serial_port
         self.bytestring_output_topic = bytestring_output_topic
-        self.json_output_topic = json_output_topic
+        # self.json_output_topic = json_output_topic
         self.continue_on_exception = continue_on_exception
 
         # Connect to the MQTT client
@@ -132,7 +123,7 @@ class DAISyPubSub(BaseMQTTPubSub):
         """
         # TODO: Provide fields via environment or command line
         out_json = self.generate_payload_json(
-            push_timestamp=int(datetime.utcnow().timestamp()),
+            push_timestamp=str(datetime.utcnow().timestamp()),
             device_type="Collector",
             id_=self.hostname,
             deployment_id=f"AISonobuoy-Arlington-{self.hostname}",
@@ -146,13 +137,13 @@ class DAISyPubSub(BaseMQTTPubSub):
         )
 
         # Publish the data as JSON to the topic by type
-        if data["type"] == "Binary AIS":
-            send_data_topic = self.bytestring_output_topic
-
-        elif data["type"] == "Decoded AIS":
-            send_data_topic = self.json_output_topic
-
+        # if data["type"] == "Binary AIS":
+        send_data_topic = self.bytestring_output_topic
         success = self.publish_to_topic(send_data_topic, out_json)
+
+        # elif data["type"] == "Decoded AIS":
+        #     send_data_topic = self.json_output_topic
+
         if success:
             logging.info(f"Successfully sent data on channel {send_data_topic}: {data}")
         else:
@@ -178,118 +169,6 @@ class DAISyPubSub(BaseMQTTPubSub):
                 "payload": binary_payload,
             }
         )
-
-        # Decode the binary payload
-        try:
-            decoded_payload = decode(binary_payload)
-
-            # Process the decoded payload by type
-            processed_payload = {}
-            processed_payload["timestamp"] = timestamp
-            message_type = type(decoded_payload)
-            if message_type in [MessageType1, MessageType2, MessageType3]:
-                # Class A AIS Position Report (Messages 1, 2, and 3)
-                # See:
-                #     https://www.navcen.uscg.gov/ais-class-a-reports
-                #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_types_1_2_and_3_position_report_class_a
-                processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload[
-                    "latitude"
-                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload[
-                    "longitude"
-                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["altitude"] = 0
-                processed_payload[
-                    "horizontal_velocity"
-                ] = (
-                    decoded_payload.speed
-                )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
-                processed_payload["course"] = decoded_payload.course
-                # [deg]
-                processed_payload["vertical_velocity"] = 0
-                # Optional values
-                processed_payload["second"] = decoded_payload.second
-                # of UTC
-                processed_payload["status"] = decoded_payload.status
-                processed_payload["turn"] = decoded_payload.turn
-                processed_payload["accuracy"] = decoded_payload.accuracy
-                processed_payload["heading"] = decoded_payload.heading
-                processed_payload["maneuver"] = decoded_payload.maneuver
-
-            elif message_type == MessageType4:
-                # AIS Base Station Report (Message 4) and Coordinated Universal Time and Date Response (Message 11)
-                # See:
-                #     https://www.navcen.uscg.gov/ais-base-station-report-message4-coordinated-universal-time-date-mesponse-message11
-                #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_4_base_station_report
-                processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload["latitude"] = decoded_payload.lat
-                # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["longitude"] = decoded_payload.lon
-                # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["altitude"] = 0
-                processed_payload["horizontal_velocity"] = 0
-                processed_payload["course"] = 0
-                processed_payload["vertical_velocity"] = 0
-                # Optional values
-                processed_payload["year"] = decoded_payload.year
-                # of UTC
-                processed_payload["month"] = decoded_payload.month
-                # of UTC
-                processed_payload["day"] = decoded_payload.day
-                # of UTC
-                processed_payload["hour"] = decoded_payload.hour
-                # of UTC
-                processed_payload["minute"] = decoded_payload.minute
-                # of UTC
-                processed_payload["second"] = decoded_payload.second
-                # of UTC
-                processed_payload["accuracy"] = decoded_payload.accuracy
-
-            elif message_type == MessageType18:
-                # AIS Standard Class B Equipment Position Report (Message 18)
-                # See:
-                #     https://www.navcen.uscg.gov/ais-class-b-reports
-                #     https://gpsd.gitlab.io/gpsd/AIVDM.html#_type_18_standard_class_b_cs_position_report
-                processed_payload["mmsi"] = decoded_payload.mmsi
-                processed_payload[
-                    "latitude"
-                ] = decoded_payload.lat  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload[
-                    "longitude"
-                ] = decoded_payload.lon  # [min / 10000] * 10000 / [60 min / deg]
-                processed_payload["altitude"] = 0
-                processed_payload[
-                    "horizontal_velocity"
-                ] = (
-                    decoded_payload.speed
-                )  # [knots] * [1852.000 m/hr / knot] / [3600 s/hr]
-                processed_payload["course"] = decoded_payload.course
-                processed_payload["vertical_velocity"] = 0
-                # Optional values
-                processed_payload["second"] = decoded_payload.second
-                # of UTC
-                processed_payload["accuracy"] = decoded_payload.accuracy
-                processed_payload["heading"] = decoded_payload.heading
-
-            else:
-                logging.info(f"Skipping message type: {message_type}")
-                return
-
-            # Send the processed payload to MQTT
-            self._send_data(
-                {
-                    "type": "Decoded AIS",
-                    "payload": json.dumps(processed_payload),
-                }
-            )
-
-        except UnknownMessageException as exception:
-            logging.error(f"Could not decode binary payload: {exception}")
-
-        ## TODO: Investigate why these are needed
-        except MissingMultipartMessageException as exception:
-            logging.error(f"Message Payload Composition error: {exception}")
 
     def main(self: Any) -> None:
         """Main loop to setup the heartbeat which keeps the TCP/IP
@@ -375,7 +254,7 @@ if __name__ == "__main__":
         hostname=os.environ.get("HOSTNAME", ""),
         serial_port=os.environ.get("AIS_SERIAL_PORT", ""),
         bytestring_output_topic=os.environ.get("BYTESTRING_OUTPUT_TOPIC", ""),
-        json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
+        # json_output_topic=os.environ.get("JSON_OUTPUT_TOPIC", ""),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
