@@ -1,16 +1,18 @@
-name: Release Tagging
+name: Docker Build Testing
 
-on: 
-  release:
-    types: [ "published" ]
+on: [pull_request_target]
+
+
 
 jobs:
   push_to_registry:
-    name: Dockerhub Release
+    name: Test Docker Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Set up Docker buildx
         id: buildx
@@ -33,6 +35,4 @@ jobs:
           context: ${{ env.DOCKER_FOLDER }}
           platforms: linux/arm64,linux/amd64
           push: true
-          tags: |
-            ${{ vars.DOCKER_NAMESPACE }}/${{ github.event.repository.name }}:${{ github.event.release.name }}
-            ${{ vars.DOCKER_NAMESPACE }}/${{ github.event.repository.name }}:stable
+          tags: ${{ vars.DOCKER_NAMESPACE }}/${{ github.event.repository.name }}:testing-PR${{ github.event.pull_request.number }}
