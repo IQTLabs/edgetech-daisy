@@ -150,9 +150,13 @@ class DAISyPubSub(BaseMQTTPubSub):
         # Publish the output JSON to the topic
         success = self.publish_to_topic(self.ais_bytestring_topic, out_json)
         if success:
-            logging.info(f"Successfully sent data on channel {self.ais_bytestring_topic}: {data}")
+            logging.info(
+                f"Successfully sent data on channel {self.ais_bytestring_topic}: {data}"
+            )
         else:
-            logging.info(f"Failed to send data on channel {self.ais_bytestring_topic}: {data}")
+            logging.info(
+                f"Failed to send data on channel {self.ais_bytestring_topic}: {data}"
+            )
         return success
 
     def process_serial_payload(self, binary_payload: str) -> None:
