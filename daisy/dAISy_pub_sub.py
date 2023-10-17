@@ -261,7 +261,7 @@ if __name__ == "__main__":
         mqtt_ip=os.environ.get("MQTT_IP", ""),
         daisy_serial_port=os.environ.get("DAISY_SERIAL_PORT", ""),
         ais_bytestring_topic=os.environ.get("AIS_BYTESTRING_TOPIC", ""),
-        log_level=os.environ.get("LOG_LEVEL"),
+        log_level=os.environ.get("LOG_LEVEL", "INFO"),
         continue_on_exception=ast.literal_eval(
             os.environ.get("CONTINUE_ON_EXCEPTION", "False")
         ),
