@@ -7,7 +7,7 @@ license = "Apache 2.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-paho-mqtt = "^1.5.0"
+paho-mqtt = "^2.0.0"
 pyserial = "^3.5"
 schedule = "^1.2.0"
 
