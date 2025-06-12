@@ -12,7 +12,7 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
     - uses: actions/setup-python@v5
       with:
-        python-version: 3.9.13
+        python-version: 3.13.5
     - run: pip install --upgrade pip
     - run: pip install "black<23" pylint==v3.0.0a3 mypy==v0.991
     - run: black --diff --check $(git ls-files '*.py')
